@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- /** 
+* Native camera extension example 
+* @author Radoslava Leseva, diadraw.com
+*/ -->
+
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		creationComplete="view_creationCompleteHandler(event)"
+		resize="view_resizeHandler(event)">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.diadraw.extensions.camera.NativeCameraExtension;
+			import com.diadraw.extensions.camera.NativeCameraExtensionEvent;
+			
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			import spark.events.TrackBaseEvent;
+			import spark.primitives.BitmapImage;
+			
+			
+			protected function view_creationCompleteHandler(event:FlexEvent):void
+			{
+				m_cameraExt = new NativeCameraExtension();
+				m_cameraExt.addEventListener( NativeCameraExtensionEvent.STATUS_EVENT, handleStatusEvent );
+				
+				m_isVideoInProgress = false;
+				
+				initChannelMaps();
+			}
+			
+			
+			protected function view_resizeHandler( _event : ResizeEvent ):void
+			{
+				var isPortrait : Boolean = height > width;
+				currentState = isPortrait ? S_PORTRAIT : S_LANDSCAPE;
+				
+				if ( null != m_log )
+				{
+					m_log.visible = isPortrait && ( m_log.text.length > 0 );
+				}
+			}
+
+			
+			protected function btnVideoCamera_clickHandler( _event : MouseEvent ):void
+			{
+				if ( m_isVideoInProgress )
+				{
+					m_btnVideoCamera.label = "Start Video Camera";
+					m_btnVideoCamera.setStyle( "color", 0x000000 );
+
+					m_cameraExt.stopVideoCamera();
+				}
+				else
+				{
+					m_btnVideoCamera.label = "Stop Video Camera";
+					m_btnVideoCamera.setStyle( "color", 0xFF0000 );
+					
+					if ( m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, false ) )
+					{
+						m_lastFrameIdx = int.MIN_VALUE;
+						m_cameraExt.addEventListener( NativeCameraExtensionEvent.IMAGE_READY, handleImageReady );
+					}
+				}
+				
+				m_isVideoInProgress = !m_isVideoInProgress;
+			}	
+
+			
+	
+			protected function btnLockFocus_clickHandler( _event : MouseEvent ):void
+			{
+				m_focusOptions.closeDropDown();		
+			}
+			
+			
+			protected function btnAutoFocus_clickHandler( _event : MouseEvent ):void
+			{
+				m_focusOptions.closeDropDown();				
+			}
+
+			
+			protected function btnLockExposure_clickHandler( _event : MouseEvent ):void
+			{
+				m_exposureOptions.closeDropDown();	
+				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked );
+			}
+
+			
+			protected function btnAutoExpose_clickHandler( _event : MouseEvent ):void
+			{
+				m_exposureOptions.closeDropDown();
+				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeContinuousAutoExposure );
+			}
+			
+			
+			protected function m_image_clickHandler( _event : MouseEvent ):void
+			{
+				var x : Number = _event.localX;
+				var y : Number = _event.localY;
+				
+				m_image.graphics.clear();
+				m_image.graphics.lineStyle( 2, 0x0000FF );
+				m_image.graphics.drawRect( x - FOCUS_RECT_HALF_SIZE_PIX, y - FOCUS_RECT_HALF_SIZE_PIX, FOCUS_RECT_SIZE_PIX, FOCUS_RECT_SIZE_PIX );
+				
+				var pointOfInterest : Point = new Point( x / m_image.width, y / m_image.height );
+				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
+			}
+			
+			
+			protected function m_image_gestureRotateHandler( _event : TransformGestureEvent ):void
+			{
+				m_rotationDegrees += _event.rotation;
+				m_cameraExt.setRotationAngle( -m_rotationDegrees );
+			}
+			
+			
+			protected function m_image_gesturePanHandler( _event : TransformGestureEvent ):void
+			{
+				m_cameraExt.setTranslationPoint( _event.offsetX, _event.offsetY );
+			}
+
+			
+			private function handleImageReady( _event : NativeCameraExtensionEvent ) : void
+			{
+				m_lastFrameWidth = _event.frameWidth;
+				m_lastFrameHeight = _event.frameHeight;
+				
+				m_byteArray = new ByteArray();
+				
+				var currentFrameIdx : Number = m_cameraExt.getFrameBuffer( m_byteArray, m_lastFrameIdx );
+				
+				if ( currentFrameIdx != m_lastFrameIdx )
+				{
+					displayFrame( m_byteArray );
+					m_lastFrameIdx = currentFrameIdx;
+				} 	
+			}
+
+
+			private function displayFrame( _byteArray : ByteArray ) : void
+			{
+				var length : Number = _byteArray.length;
+				
+				var bd : BitmapData = new BitmapData( m_lastFrameWidth, m_lastFrameHeight );
+				
+				var renderRect : Rectangle = new Rectangle( 0, 0, m_lastFrameWidth, m_lastFrameHeight );
+				
+				bd.setPixels( renderRect, _byteArray );
+				bd.paletteMap( bd, renderRect, new Point( 0, 0 ), MAP_GREEN, MAP_RED, MAP_ALPHA, MAP_BLUE );
+				
+				m_image.graphics.clear();
+				m_image.source = bd;
+			}
+			
+			
+			private function handleStatusEvent( _event : NativeCameraExtensionEvent ) : void
+			{
+				addToLog( _event.message + " " + _event.data );
+			}
+			
+			
+			private function addToLog( _message : String ) : void
+			{
+				m_log.appendText( "\n" + _message );
+				
+				m_log.visible = m_log.text.length > 0;
+			}
+
+			
+			private function initChannelMaps():void
+			{
+				// Function cortesy of Per Holmes
+				for ( var i : uint = 0 ; i < 256 ; ++i )
+				{
+					MAP_ALPHA[ i ]     = 0xff000000;
+					MAP_RED[ i ]       = i << 16;
+					MAP_GREEN[ i ]     = i << 8;
+					MAP_BLUE[ i ]      = i;
+				}                
+			}
+			
+			
+			private var m_cameraExt : NativeCameraExtension;
+			private var m_byteArray : ByteArray;
+			private var m_isVideoInProgress : Boolean;
+			private var m_lastFrameIdx : Number;
+			private var m_lastFrameWidth : Number;
+			private var m_lastFrameHeight : Number;
+			private var m_rotationDegrees : Number = 0;
+			
+			private var MAP_RED 	: Array = new Array( 256 );
+			private var MAP_GREEN 	: Array = new Array( 256 );
+			private var MAP_BLUE 	: Array = new Array( 256 );
+			private var MAP_ALPHA	: Array = new Array( 256 );
+			
+			private const FOCUS_RECT_SIZE_PIX : Number = 60;
+			private const FOCUS_RECT_HALF_SIZE_PIX : Number = FOCUS_RECT_SIZE_PIX * 0.5;
+			
+			private const RESOLUTION_PRESET : String = NativeCameraExtension.Preset640x480; 
+			private const FRAME_WIDTH : Number = 640; 
+			private const FRAME_HEIGHT : Number = 480; 
+			
+			private const MIN_FRAMES_PER_SECOND : Number = 15;
+			private const MAX_FRAMES_PER_SECOND : Number = 15;
+			
+			private const S_PORTRAIT : String = "portrait";
+			private const S_LANDSCAPE : String = "landscape";
+		]]>
+	</fx:Script>
+	
+	
+	<fx:Declarations>
+		<s:State name="portrait"/>
+		<s:State name="landscape"/>
+	</fx:Declarations>
+	
+	
+	<s:titleContent>
+		<s:HGroup gap="10">
+			<s:CalloutButton id="m_exposureOptions"
+							 horizontalPosition="end"
+							 verticalPosition="after"
+							 label="Exposure">
+				<s:calloutLayout>
+					<s:VerticalLayout/>
+				</s:calloutLayout>
+				
+				<s:Button id="btnLockExposure" 		width="100%" label="Lock" click="btnLockExposure_clickHandler(event)"/>
+				<s:Button id="btnAutoExpose" 		width="100%" label="Auto-expose" click="btnAutoExpose_clickHandler(event)"/>
+			</s:CalloutButton>
+			
+			<s:CalloutButton id="m_focusOptions"
+							 horizontalPosition="end"
+							 verticalPosition="after"
+							 label="Focus">
+				<s:calloutLayout>
+					<s:VerticalLayout/>
+				</s:calloutLayout>
+				
+				<s:Button id="btnLockFocus" 	width="100%" label="Lock" click="btnLockFocus_clickHandler(event)"/>
+				<s:Button id="btnAutoFocus" 	width="100%" label="Auto-focus" click="btnAutoFocus_clickHandler(event)"/>
+			</s:CalloutButton>
+		</s:HGroup>
+	</s:titleContent>
+	
+	
+	<s:Image id="m_image" 
+			 width="100%" 
+			 height="100%" 
+			 scaleMode="letterbox" 
+			 horizontalAlign="center"
+			 verticalAlign="middle"
+			 click="m_image_clickHandler(event)" 
+			 gestureRotate="m_image_gestureRotateHandler(event)"
+			 gesturePan="m_image_gesturePanHandler(event)"/>	
+	
+	<s:VGroup id="imgGroup" bottom="10" left="10" right="10" height="50%" gap="10">
+		
+		<s:TextArea id="m_log" width="100%" height="100%" visible="false"/>
+		<s:Button id="m_btnVideoCamera" width="100%" label="Start Video Camera"
+					  click="btnVideoCamera_clickHandler(event)"/>
+	</s:VGroup>
+	
+</s:View>

@@ -1,0 +1,19 @@
+<extension xmlns="http://ns.adobe.com/air/extension/3.1">
+
+  <id>com.diadraw.extensions.camera.NativeCameraExtension</id>
+
+  <versionNumber>1.0.0</versionNumber>
+
+  <platforms>
+
+    	<platform name="iPhone-ARM">
+    	<!-- platform name="iPhone-x86" -->
+            <applicationDeployment>
+                <nativeLibrary>libNativeCameraExtensioniOS.a</nativeLibrary>
+                <initializer>CameraExtensionInitializer</initializer>
+                <finalizer>CameraExtensionFinalizer</finalizer>
+            </applicationDeployment>
+        </platform>
+
+  </platforms>
+</extension>

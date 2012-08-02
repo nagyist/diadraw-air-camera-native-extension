@@ -1,0 +1,9 @@
+<platform xmlns="http://ns.adobe.com/air/extension/3.1">
+    <sdkVersion>5.1</sdkVersion>
+    <linkerOptions>
+        <option>-w</option>
+        <option>-framework AVFoundation</option>
+        <option>-framework ImageIO</option>
+        <option>-framework CoreImage</option>
+    </linkerOptions>
+</platform>
