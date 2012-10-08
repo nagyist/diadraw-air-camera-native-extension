@@ -333,7 +333,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
             }   
         }
         
-        NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%d,%d", width, height ] ;
+        NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%lu,%lu", width, height ] ;
         sendMessage( MSG_FRAME_READY, frameSize );
         [ frameSize release ];
         
