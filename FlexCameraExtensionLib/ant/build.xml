@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<project name="FlexCameraExtensionLib" default="package ane" basedir=".">
+	    
+		
+		<!-- All properties are defined in these two files: -->
+	    <property file="local.properties" />
+	    <property file="build.properties" />
+	    
+		
+		<!-- The clean target gets rid of the products of our previous build: -->
+	    <target name="clean">
+	        <delete dir="${lib.builddir}"/>
+	        <mkdir dir="${lib.builddir}"/>
+	    </target>
+	    
+		
+		<!-- Run the compc Flex compiler to build the .swc file of the AIR library: -->
+	    <target name="build" depends="clean">
+	        <exec executable="${COMPC}">
+	            <arg line="
+	    			+configname=airmobile
+	                -output ${lib.builddir}/${lib.libname}.swc
+	            	-source-path+=${lib.sourcedir}
+	            	-include-classes+=com.diadraw.extensions.camera.NativeCameraExtension
+	                -load-config+=FlexCameraExtensionLib_flex.config 
+	            "/>
+	        </exec>
+	    </target>
+		
+		
+		<!-- Prepare paths and gather the ingredients for the ANE package: -->
+		<target name="copy files for packaging" depends="build">
+			<!-- Delete any old packages and create a folder to put the files in: -->
+			<delete dir="${lib.packagedir}"/>
+			<mkdir  dir="${lib.packagedir}"/>
+			<!-- Inside that folder, create a subfolder, where the ANE file will be put. 
+				 Note: when the ANE package is created, anything that is in the same folder as the ANE
+				 will be put inside the package, thus it's best to start with an empty folder. -->
+			<mkdir  dir="${lib.packageoutput}"/>
+			
+			<!-- First ingredient: the library SWC file, which is really an archive of
+				 two files: library.swf and catalog.xml.
+				 We only need library.swf, so we unzip the SWC and delete catalog.xml:  -->
+			<copy file="${lib.builddir}/${lib.swcfilename}" tofile="${lib.packagedir}/${lib.swcfilename}"/>
+			<unzip src="${lib.packagedir}/${lib.swcfilename}" dest="${lib.packagedir}"/>
+			<delete file="${lib.packagedir}/catalog.xml"/>
+			
+			<!-- The next two ingredients are the two .xml files the accompany the extension:  -->
+			<copy file="${lib.sourcedir}/${package.extenxion_options}" tofile="${lib.packagedir}/${package.extenxion_options}"/>
+			<copy file="${lib.sourcedir}/${package.platform_options}" tofile="${lib.packagedir}/${package.platform_options}"/>
+			
+			<!-- And last, we need the native .a library:  -->
+			<copy file="${lib.native_library_path}/${lib.native_library}" tofile="${lib.packagedir}/${lib.native_library}" />
+		</target>
+		
+		
+		<!-- All the ingredients for the ANE package have been gathered, now create the package: -->
+		<target name="package ane" depends="copy files for packaging">
+			<exec executable="${ADT}">
+				<arg line="       	
+				      		-package 
+							-target ane 
+							 ${lib.packageoutput}/${package.ane}
+							 ${lib.packagedir}/${package.extenxion_options} 
+							-swc ${lib.packagedir}/${lib.swcfilename} 
+							-platform iPhone-ARM 
+							-C ${lib.packagedir} .
+							-platformoptions ${lib.packagedir}/${package.platform_options}
+				"/>
+			</exec>
+			
+			<!-- The ANE is now inside ant/package/ane, copy it where we want it to end up for use from apps
+				 and clean up the files we copied earlier, but no longer need: -->
+			<delete file="${package.destinationdir}/${package.ane}" />
+			<copy file="${lib.packageoutput}/${package.ane}" tofile="${package.destinationdir}/${package.ane}" />
+			<delete dir="${lib.packagedir}"/>
+		</target>
+		
+		
+	</project>

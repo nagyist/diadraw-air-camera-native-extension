@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- /** 
+* Native camera extension example 
+* @author Radoslava Leseva, diadraw.com
+*/ -->
+	 	
+<project name="CameraTestApp" default="package ipa" basedir=".">
+ 
+	<!-- All properties are defined in these two files: -->
+    <property file="local.properties" />
+    <property file="build.properties" />
+	
+	
+	<!-- The clean target gets rid of the products of our previous build: -->
+	<target name="clean">
+		<delete dir="${app.builddir}"/>
+		<mkdir dir="${app.builddir}"/>
+	</target>
+	
+	
+	<!-- We need to copy the assets/ folder, any icon files and the app descriptor file (-app.xml) -->
+	<target name="copy files for building" depends="clean">
+		<copy todir="${app.builddir}" preservelastmodified="true" verbose="true">
+	    	<fileset dir="${app.sourcedir}">
+	        	<patternset>
+	            	<include name="assets/**"/>
+	                <include name="*.png"/>
+	                <include name="*.xml"/>
+	        	</patternset>
+	    	</fileset>
+		</copy>	        
+	</target>
+	    
+	
+	<!-- Run the mcmlc Flex compiler to build the .swf file for the app: -->
+	<target name="build" depends="copy files for building">
+		<exec executable="${MXMLC}">
+	    	<arg line="
+	        		 +configname=airmobile 
+	        		 -output ${app.builddir}/${app.swffile}
+	        		 ${app.source} 
+	        		 -source-path+=${app.sourcedir}
+	        		 -load-config+=${app.name}_flex.config
+	       	"/>
+		</exec>
+	</target>
+	
+
+	<!-- Prepare paths and gather the ingredients for the IPA package: -->
+	<target name="copy files for packaging" depends="build">
+		<!-- Delete any old packages and create a folder to put the files in: -->
+		<delete dir="${app.packagedir}"/>
+		<mkdir 	dir="${app.packagedir}"/>
+		<!-- Inside that folder, create a subfolder, where the IPA file will be put. 
+						 Note: when the ANE package is created, anything that is in the same folder as the ANE
+						 will be put inside the package, thus it's best to start with an empty folder. -->
+		<mkdir  dir="${app.packageoutput}"/>
+			
+		<!-- Copy the app SWF file, its descriptor and all assets and icons: -->
+		<copy todir="${app.packagedir}" preservelastmodified="true" verbose="true">
+			<fileset dir="${app.builddir}">
+				<patternset>
+					<include name="assets/**"/>
+					<include name="*.png"/>
+					<include name="*.xml"/>
+					<include name="*.swf"/>
+				</patternset>
+			</fileset>
+		</copy>
+		
+		<!-- Copy any extension files -->
+		<delete dir="${package.extensiondir}"/>
+		<mkdir dir="${package.extensiondir}"/>
+		
+		<copy todir="${package.extensiondir}" preservelastmodified="true" verbose="true">
+			<fileset dir="${ext.extensiondir}">
+				<patternset>
+					<include name="*.ane"/>
+				</patternset>
+			</fileset>
+		</copy>
+	</target>
+	
+	<!-- All the ingredients for the IPA package have been gathered, now create the package: -->
+	<target name="package ipa" depends="copy files for packaging">
+		<exec executable="${ADT}">
+	    	<arg line="-package
+	                   -target ${package.target_type}
+	                   -storetype ${package.storetype}
+	                   -keystore ${package.privatekey}
+	    			   -storepass ${package.storepass}
+	                   -provisioning-profile ${package.mobileprovision}
+	    				${app.packageoutput}/${package.ipa}
+	    				${app.packagedir}/${app.descriptor}
+	    			   -C ${app.packagedir}  ${app.swffile}
+	            	   -platformsdk ${IOS_SDK}
+	                   -extdir ${package.extensiondir}
+	    				assets
+	    	"/>
+		</exec>
+		
+		<!-- The IPA is now inside ant/package/ane, copy it where we want it to end up for use from apps
+			 and clean up the files we copied earlier, but no longer need: -->
+		<delete file="${package.destinationdir}/${package.ipa}" />
+		<copy file="${app.packageoutput}/${package.ipa}" tofile="${package.destinationdir}/${package.ipa}" />
+		<delete dir="${app.packagedir}"/>
+		<delete dir="${package.extensiondir}"/>
+	</target>
+ 
+</project>
