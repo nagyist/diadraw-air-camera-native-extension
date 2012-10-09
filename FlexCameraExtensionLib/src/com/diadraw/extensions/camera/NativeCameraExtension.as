@@ -25,6 +25,11 @@ package com.diadraw.extensions.camera
 		public static const ExposureModeAutoExpose           	: Number = 1; // The device performs an auto-expose operation and reverts to locked.
 		public static const ExposureModeContinuousAutoExposure 	: Number = 2; // The device continuously monitors exposure levels and auto exposes when neccessary.
 		
+		public static const WhiteBalanceModeLocked            			: Number = 0; // The white balance setting is locked.
+		public static const WhiteBalanceModeAutoWhiteBalance   			: Number = 1; // The device performs an auto white balance operation now.
+		public static const WhiteBalanceModeContinuousAutoWhiteBalance 	: Number = 2; // The device continuously monitors white balance and adjusts when necessary.
+		
+		
 		public static const PresetPhoto 			: String = "AVCaptureSessionPresetPhoto";
 		public static const PresetHigh 				: String = "AVCaptureSessionPresetHigh";
 		public static const PresetMedium 			: String = "AVCaptureSessionPresetMedium";
@@ -96,7 +101,7 @@ package com.diadraw.extensions.camera
 		 * 		  NOTE: _bufferData must not be null. Its size however is set by the native code.
 		 * @param _lastFrameIndex The index of the last frame we requested.
 		 * 
-		 * @return The intex of the frame that was copied into _bufferData.
+		 * @return The index of the frame that was copied into _bufferData.
 		 * 		   If it is the same as _lastFrameIndex, then we have already got the newest frame and no copying was done.	   	
 		 */ 
 		public function getFrameBuffer( _bufferData : ByteArray, _lastFrameIndex : Number ) : Number
@@ -130,10 +135,26 @@ package com.diadraw.extensions.camera
 		}
 		
 		
-		public function setFocusMode( _mode : Number, _point : Point = null ) : void
+		public function setFocusMode( _mode : Number, _pointOfInterest : Point = null ) : void
 		{
 			ensureContext();
-			m_extContext.call( "as_setFocusMode");		
+			m_extContext.call( "as_setFocusMode", _mode );	
+			
+			if ( null != _pointOfInterest )
+			{
+				m_extContext.call( "as_setFocusMode", _mode, _pointOfInterest.x, _pointOfInterest.y );	
+			}
+			else
+			{	
+				m_extContext.call( "as_setFocusMode", _mode );
+			}
+		}
+		
+		
+		public function setWhiteBalanceMode( _mode : Number ) : void
+		{
+			ensureContext();
+			m_extContext.call( "as_setWhiteBalance", _mode );	
 		}
 		
 		
