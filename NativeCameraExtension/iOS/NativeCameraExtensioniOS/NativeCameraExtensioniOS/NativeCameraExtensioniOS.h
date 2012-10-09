@@ -19,6 +19,7 @@ FREObject ASStartVideoCamera( FREContext ctx, void* funcData, uint32_t argc, FRE
 FREObject ASStopVideoCamera( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
 FREObject ASSetExposureMode( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
 FREObject ASSetFocusMode( FREContext cts, void* funcData, uint32_t argc, FREObject argv[] );
+FREObject ASSetWhiteBalanceMode( FREContext cts, void* funcData, uint32_t argc, FREObject argv[] );
 FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
 FREObject ASSetRotationAngle( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );
 FREObject ASSetTranslationPoint( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] );

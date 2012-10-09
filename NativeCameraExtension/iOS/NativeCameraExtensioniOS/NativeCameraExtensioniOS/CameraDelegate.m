@@ -125,34 +125,57 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
 }
 
 
-- (void) setFocusMode : ( AVCaptureFocusMode ) focusMode
-               focusX : ( CGFloat ) focusX
-               focusY : ( CGFloat ) focusY
+
+- (void) setWhiteBalanceMode : ( AVCaptureWhiteBalanceMode ) whiteBalanceMode
 {
-    if ( [ currentDevice isExposureModeSupported: focusMode ] )
+    if ( [ currentDevice isWhiteBalanceModeSupported: whiteBalanceMode ] )
     {
         NSError * error = nil;
         
         if ( [ currentDevice lockForConfiguration: &error ] )
         {
-            if ( [ currentDevice isExposurePointOfInterestSupported ] )
+            
+            [ currentDevice setWhiteBalanceMode: whiteBalanceMode ];
+            
+            [ currentDevice unlockForConfiguration ];
+        }
+    }
+    else
+    {
+        sendMessage( MSG_ERROR, @"Exposure mode not supported" );
+    }
+}
+
+
+
+- (void) setFocusMode : ( AVCaptureFocusMode ) focusMode
+               focusX : ( CGFloat ) focusX
+               focusY : ( CGFloat ) focusY
+{
+    if ( [ currentDevice isFocusModeSupported: focusMode ] )
+    {
+        NSError * error = nil;
+        
+        if ( [ currentDevice lockForConfiguration: &error ] )
+        {
+            if ( [ currentDevice isFocusPointOfInterestSupported ] )
             {
                 CGPoint focalPoint = CGPointMake( focusX, focusY );
-                [ currentDevice setExposurePointOfInterest: focalPoint ];
+                [ currentDevice setFocusPointOfInterest: focalPoint ];
             }
             else 
             {
-                sendMessage( MSG_WARNING, @"Exposure point of interest not supported" );
+                sendMessage( MSG_WARNING, @"Focus point of interest not supported" );
             }
             
-            [ currentDevice setExposureMode: focusMode ];
+            [ currentDevice setFocusMode: focusMode ];
             
             [ currentDevice unlockForConfiguration ];
         }
     }
     else 
     {
-        sendMessage( MSG_ERROR, @"Exposure mode not supported" );
+        sendMessage( MSG_ERROR, @"Focus mode not supported" );
     }
 }
 

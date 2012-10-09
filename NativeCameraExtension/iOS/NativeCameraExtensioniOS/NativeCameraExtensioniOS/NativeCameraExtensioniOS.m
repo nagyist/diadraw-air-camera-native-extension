@@ -162,6 +162,22 @@ FREObject ASSetFocusMode( FREContext cts, void* funcData, uint32_t argc, FREObje
 }
 
 
+FREObject ASSetWhiteBalanceMode( FREContext cts, void* funcData, uint32_t argc, FREObject argv[] )
+{
+    ensureCameraDelegate();
+    
+    int32_t whiteBalanceMode = 0;
+    FREGetObjectAsInt32( argv[ 0 ], &whiteBalanceMode );
+    
+    assert( AVCaptureWhiteBalanceModeLocked <= whiteBalanceMode && whiteBalanceMode <= AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance );
+    
+    
+    [ cameraDelegate setWhiteBalanceMode: whiteBalanceMode ];
+    
+    return NULL;
+}
+
+
 
 FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
 {
@@ -265,14 +281,15 @@ void CameraExtensionContextInitializer( void * extData,
 {
     typedef enum 
     {
-        AS_START_VIDEO_CAMERA   = 0,
-        AS_STOP_VIDEO_CAMERA    = 1,
-        AS_SET_AUTO_EXPOSE      = 2,
-        AS_SET_AUTO_FOCUS       = 3,
-        AS_GET_FRAME_BUFFER     = 4,
-        AS_SET_ROTATION_ANGLE   = 5,
-        AS_SET_TRANSLATION_PIXELS = 6,
-        AS_SET_CROP_RECTANGLE   = 7,
+        AS_START_VIDEO_CAMERA       = 0,
+        AS_STOP_VIDEO_CAMERA        = 1,
+        AS_SET_AUTO_EXPOSE          = 2,
+        AS_SET_AUTO_FOCUS           = 3,
+        AS_SET_AUTO_WHITE_BALANCE   = 4,
+        AS_GET_FRAME_BUFFER         = 5,
+        AS_SET_ROTATION_ANGLE       = 6,
+        AS_SET_TRANSLATION_PIXELS   = 7,
+        AS_SET_CROP_RECTANGLE       = 8,
         
         AS_METHOD_COUNT
     } ASMethods;
@@ -296,6 +313,10 @@ void CameraExtensionContextInitializer( void * extData,
     func[ AS_SET_AUTO_FOCUS ].name = (const uint8_t*) "as_setFocusMode";
 	func[ AS_SET_AUTO_FOCUS ].functionData = NULL;
     func[ AS_SET_AUTO_FOCUS ].function = &ASSetFocusMode;
+    
+    func[ AS_SET_AUTO_WHITE_BALANCE ].name = (const uint8_t*) "as_setWhiteBalance";
+	func[ AS_SET_AUTO_WHITE_BALANCE ].functionData = NULL;
+    func[ AS_SET_AUTO_WHITE_BALANCE ].function = &ASSetWhiteBalanceMode;
     
     func[ AS_GET_FRAME_BUFFER ].name = (const uint8_t*) "as_getFrameBuffer";
 	func[ AS_GET_FRAME_BUFFER ].functionData = NULL;
