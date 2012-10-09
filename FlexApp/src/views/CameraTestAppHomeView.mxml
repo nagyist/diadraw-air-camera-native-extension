@@ -69,18 +69,33 @@
 				
 				m_isVideoInProgress = !m_isVideoInProgress;
 			}	
+			
 
+			protected function btnAutoWhiteBalance_clickHandler( _event : MouseEvent ):void
+			{
+				m_whiteBalanceOptions.closeDropDown();	
+				m_cameraExt.setWhiteBalanceMode( NativeCameraExtension.WhiteBalanceModeContinuousAutoWhiteBalance );
+			}
+			
+			
+			protected function btnLockWhiteBalance_clickHandler( _event : MouseEvent ):void
+			{
+				m_whiteBalanceOptions.closeDropDown();	
+				m_cameraExt.setWhiteBalanceMode( NativeCameraExtension.WhiteBalanceModeLocked );
+			}
 			
 	
 			protected function btnLockFocus_clickHandler( _event : MouseEvent ):void
 			{
-				m_focusOptions.closeDropDown();		
+				m_focusOptions.closeDropDown();	
+				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeLocked );
 			}
 			
 			
 			protected function btnAutoFocus_clickHandler( _event : MouseEvent ):void
 			{
 				m_focusOptions.closeDropDown();				
+				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeContinuousAutoFocus );
 			}
 
 			
@@ -108,7 +123,8 @@
 				m_image.graphics.drawRect( x - FOCUS_RECT_HALF_SIZE_PIX, y - FOCUS_RECT_HALF_SIZE_PIX, FOCUS_RECT_SIZE_PIX, FOCUS_RECT_SIZE_PIX );
 				
 				var pointOfInterest : Point = new Point( x / m_image.width, y / m_image.height );
-				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
+//				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
+				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeLocked, pointOfInterest );
 			}
 			
 			
@@ -222,29 +238,39 @@
 	
 	<s:titleContent>
 		<s:HGroup gap="10">
-			<s:CalloutButton id="m_exposureOptions"
-							 horizontalPosition="end"
-							 verticalPosition="after"
-							 label="Exposure">
+			<s:CalloutButton id="m_exposureOptions" label="Exposure" fontSize="32"
+							 horizontalPosition="end" verticalPosition="after">
 				<s:calloutLayout>
 					<s:VerticalLayout/>
 				</s:calloutLayout>
 				
-				<s:Button id="btnLockExposure" 		width="100%" label="Lock" click="btnLockExposure_clickHandler(event)"/>
-				<s:Button id="btnAutoExpose" 		width="100%" label="Auto-expose" click="btnAutoExpose_clickHandler(event)"/>
+				<s:Button id="btnLockExposure" 		width="100%" fontSize="32" label="Lock" click="btnLockExposure_clickHandler(event)"/>
+				<s:Button id="btnAutoExpose" 		width="100%" fontSize="32" label="Auto-expose" click="btnAutoExpose_clickHandler(event)"/>
 			</s:CalloutButton>
 			
-			<s:CalloutButton id="m_focusOptions"
-							 horizontalPosition="end"
-							 verticalPosition="after"
-							 label="Focus">
+			<s:CalloutButton id="m_focusOptions" label="Focus" fontSize="32" horizontalPosition="end"
+							 verticalPosition="after">
 				<s:calloutLayout>
 					<s:VerticalLayout/>
 				</s:calloutLayout>
 				
-				<s:Button id="btnLockFocus" 	width="100%" label="Lock" click="btnLockFocus_clickHandler(event)"/>
-				<s:Button id="btnAutoFocus" 	width="100%" label="Auto-focus" click="btnAutoFocus_clickHandler(event)"/>
+				<s:Button id="btnLockFocus" 	width="100%" fontSize="32" label="Lock" click="btnLockFocus_clickHandler(event)"/>
+				<s:Button id="btnAutoFocus" 	width="100%" fontSize="32" label="Auto-focus" click="btnAutoFocus_clickHandler(event)"/>
 			</s:CalloutButton>
+			
+			
+			
+			<s:CalloutButton id="m_whiteBalanceOptions" label="White Balance" fontSize="32" horizontalPosition="end"
+							 verticalPosition="after">
+				<s:calloutLayout>
+					<s:VerticalLayout/>
+				</s:calloutLayout>
+				
+				<s:Button id="btnLockWhiteBalance" 	width="100%" fontSize="32" label="Lock" click="btnLockWhiteBalance_clickHandler(event)"/>
+				<s:Button id="btnAutoWhiteBalance" 	width="100%" fontSize="32" label="Auto-white balance" click="btnAutoWhiteBalance_clickHandler(event)"/>
+			</s:CalloutButton>
+			
+			
 		</s:HGroup>
 	</s:titleContent>
 	
@@ -263,7 +289,7 @@
 		
 		<s:TextArea id="m_log" width="100%" height="100%" visible="false"/>
 		<s:Button id="m_btnVideoCamera" width="100%" label="Start Video Camera"
-					  click="btnVideoCamera_clickHandler(event)"/>
+				  click="btnVideoCamera_clickHandler(event)" fontSize="32"/>
 	</s:VGroup>
 	
 </s:View>
