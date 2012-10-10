@@ -16,6 +16,8 @@
 			import com.diadraw.extensions.camera.NativeCameraExtension;
 			import com.diadraw.extensions.camera.NativeCameraExtensionEvent;
 			
+			import flashx.textLayout.elements.BreakElement;
+			
 			import mx.events.FlexEvent;
 			import mx.events.ResizeEvent;
 			
@@ -29,7 +31,7 @@
 				m_cameraExt.addEventListener( NativeCameraExtensionEvent.STATUS_EVENT, handleStatusEvent );
 				
 				m_isVideoInProgress = false;
-				
+
 				initChannelMaps();
 			}
 			
@@ -122,8 +124,49 @@
 				m_image.graphics.lineStyle( 2, 0x0000FF );
 				m_image.graphics.drawRect( x - FOCUS_RECT_HALF_SIZE_PIX, y - FOCUS_RECT_HALF_SIZE_PIX, FOCUS_RECT_SIZE_PIX, FOCUS_RECT_SIZE_PIX );
 				
-				var pointOfInterest : Point = new Point( x / m_image.width, y / m_image.height );
-//				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
+				var m : Matrix = new Matrix();
+				var w : Number = m_image.width;
+				var h : Number = m_image.height;
+				
+				switch ( stage.orientation )
+				{
+					case StageOrientation.DEFAULT:
+					{
+						w = m_image.height;
+						h = m_image.width;
+						
+						m.rotate( -90 * ( Math.PI / 180 ) );
+						m.translate( 0, h );
+					}
+						break;
+					
+					case StageOrientation.UPSIDE_DOWN:
+					{
+						w = m_image.height;
+						h = m_image.width;
+
+						m.rotate( 90 * ( Math.PI / 180 ) );
+						m.translate( w, 0 );
+					}
+						break;
+					
+					case StageOrientation.ROTATED_LEFT:
+					{
+						m.rotate( 180 * ( Math.PI / 180 ) );
+						m.translate( w, h );
+					}
+						break;
+					
+					default:
+						break;
+				}
+				
+				var screenPoint : Point = new Point( _event.localX, _event.localY );
+				var imgPoint : Point = m.transformPoint( screenPoint );
+				
+				var pointOfInterest : Point = new Point( imgPoint.x / w, imgPoint.y / h );
+
+				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
 				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeLocked, pointOfInterest );
 			}
 			
@@ -160,17 +203,55 @@
 
 			private function displayFrame( _byteArray : ByteArray ) : void
 			{
-				var length : Number = _byteArray.length;
-				
-				var bd : BitmapData = new BitmapData( m_lastFrameWidth, m_lastFrameHeight );
+				var bd : BitmapData = new BitmapData( m_lastFrameWidth, m_lastFrameHeight, true );
 				
 				var renderRect : Rectangle = new Rectangle( 0, 0, m_lastFrameWidth, m_lastFrameHeight );
 				
 				bd.setPixels( renderRect, _byteArray );
 				bd.paletteMap( bd, renderRect, new Point( 0, 0 ), MAP_GREEN, MAP_RED, MAP_ALPHA, MAP_BLUE );
 				
+				var m : Matrix = new Matrix();
+				var w : Number = bd.width;
+				var h : Number = bd.height;
+				
+				switch ( stage.orientation )
+				{
+					case StageOrientation.DEFAULT:
+						{
+							w = bd.height;
+							h = bd.width;
+							
+							m.rotate( 90 * ( Math.PI / 180 ) );
+							m.translate( w, 0 );
+						}
+						break;
+					
+					case StageOrientation.UPSIDE_DOWN:
+						{
+							w = bd.height;
+							h = bd.width;
+							
+							m.rotate( -90 * ( Math.PI / 180 ) );
+							m.translate( 0, h );
+						}
+						break;
+					
+					case StageOrientation.ROTATED_LEFT:
+						{
+							m.rotate( 180 * ( Math.PI / 180 ) );
+							m.translate( w, h );
+						}
+						break;
+					
+					default:
+						break;
+				}
+				
+				var orientedBd : BitmapData = new BitmapData( w, h, true );
+				orientedBd.draw( bd, m );
+				
 				m_image.graphics.clear();
-				m_image.source = bd;
+				m_image.source = orientedBd;
 			}
 			
 			
@@ -226,6 +307,7 @@
 			
 			private const S_PORTRAIT : String = "portrait";
 			private const S_LANDSCAPE : String = "landscape";
+			
 		]]>
 	</fx:Script>
 	
@@ -278,7 +360,8 @@
 	<s:Image id="m_image" 
 			 width="100%" 
 			 height="100%" 
-			 scaleMode="letterbox" 
+			 scaleMode="zoom" 
+
 			 horizontalAlign="center"
 			 verticalAlign="middle"
 			 click="m_image_clickHandler(event)" 
