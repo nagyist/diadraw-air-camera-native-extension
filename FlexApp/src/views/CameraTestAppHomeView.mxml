@@ -30,6 +30,7 @@
 				m_cameraExt = new NativeCameraExtension();
 				m_cameraExt.addEventListener( NativeCameraExtensionEvent.STATUS_EVENT, handleStatusEvent );
 				
+				m_usingFrontCamera = false;
 				m_isVideoInProgress = false;
 
 				initChannelMaps();
@@ -62,7 +63,7 @@
 					m_btnVideoCamera.label = "Stop Video Camera";
 					m_btnVideoCamera.setStyle( "color", 0xFF0000 );
 					
-					if ( m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, false ) )
+					if ( m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, m_usingFrontCamera ) )
 					{
 						m_lastFrameIdx = int.MIN_VALUE;
 						m_cameraExt.addEventListener( NativeCameraExtensionEvent.IMAGE_READY, handleImageReady );
@@ -71,6 +72,22 @@
 				
 				m_isVideoInProgress = !m_isVideoInProgress;
 			}	
+			
+			
+			protected function btnSwapCameras_clickHandler( _event : MouseEvent ) : void
+			{
+				if ( m_isVideoInProgress )
+				{
+					m_cameraExt.stopVideoCamera();
+				
+					m_usingFrontCamera = !m_usingFrontCamera;
+					
+					if ( !m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, m_usingFrontCamera ) )
+					{
+						addToLog( "Camera swap failed" );
+					}
+				}
+			}
 			
 
 			protected function btnAutoWhiteBalance_clickHandler( _event : MouseEvent ):void
@@ -131,30 +148,43 @@
 				switch ( stage.orientation )
 				{
 					case StageOrientation.DEFAULT:
-					{
-						w = m_image.height;
-						h = m_image.width;
-						
-						m.rotate( -90 * ( Math.PI / 180 ) );
-						m.translate( 0, h );
-					}
+						{
+							w = m_image.height;
+							h = m_image.width;
+							
+							m.rotate( -90 * ( Math.PI / 180 ) );
+							m.translate( 0, h );
+						}
 						break;
 					
 					case StageOrientation.UPSIDE_DOWN:
-					{
-						w = m_image.height;
-						h = m_image.width;
-
-						m.rotate( 90 * ( Math.PI / 180 ) );
-						m.translate( w, 0 );
-					}
+						{
+							w = m_image.height;
+							h = m_image.width;
+	
+							m.rotate( 90 * ( Math.PI / 180 ) );
+							m.translate( w, 0 );
+						}
 						break;
 					
 					case StageOrientation.ROTATED_LEFT:
-					{
-						m.rotate( 180 * ( Math.PI / 180 ) );
-						m.translate( w, h );
-					}
+						{
+							if ( !m_usingFrontCamera )
+							{
+								m.rotate( 180 * ( Math.PI / 180 ) );
+								m.translate( w, h );
+							}
+						}
+						break;
+					
+					case StageOrientation.ROTATED_RIGHT:
+						{
+							if ( m_usingFrontCamera )
+							{
+								m.rotate( 180 * ( Math.PI / 180 ) );
+								m.translate( w, h );
+							}
+						}
 						break;
 					
 					default:
@@ -238,9 +268,22 @@
 					
 					case StageOrientation.ROTATED_LEFT:
 						{
+							if ( !m_usingFrontCamera )
+							{
+								m.rotate( 180 * ( Math.PI / 180 ) );
+								m.translate( w, h );
+							}
+						}
+						break;
+					
+					case StageOrientation.ROTATED_RIGHT:
+					{
+						if ( m_usingFrontCamera )
+						{
 							m.rotate( 180 * ( Math.PI / 180 ) );
 							m.translate( w, h );
 						}
+					}
 						break;
 					
 					default:
@@ -282,13 +325,24 @@
 			}
 			
 			
+			private function get btnSwapCameraLabel() : String
+			{
+				return m_usingFrontCamera ? "Switch to back camera" : "Switch to front camera";
+			}
+			
+			
 			private var m_cameraExt : NativeCameraExtension;
 			private var m_byteArray : ByteArray;
-			private var m_isVideoInProgress : Boolean;
 			private var m_lastFrameIdx : Number;
 			private var m_lastFrameWidth : Number;
 			private var m_lastFrameHeight : Number;
 			private var m_rotationDegrees : Number = 0;
+			
+			[Bindable]
+			private var m_usingFrontCamera : Boolean = false;
+			
+			[Bindable]
+			private var m_isVideoInProgress : Boolean;
 			
 			private var MAP_RED 	: Array = new Array( 256 );
 			private var MAP_GREEN 	: Array = new Array( 256 );
@@ -352,6 +406,12 @@
 				<s:Button id="btnAutoWhiteBalance" 	width="100%" fontSize="32" label="Auto-white balance" click="btnAutoWhiteBalance_clickHandler(event)"/>
 			</s:CalloutButton>
 			
+			<s:Spacer width="100%" height="100%">
+			</s:Spacer>
+			
+			<s:Button id="btnSwapCameras" fontSize="32" label="{btnSwapCameraLabel}" click="btnSwapCameras_clickHandler(event)" enabled="{m_isVideoInProgress}">
+				
+			</s:Button>
 			
 		</s:HGroup>
 	</s:titleContent>
