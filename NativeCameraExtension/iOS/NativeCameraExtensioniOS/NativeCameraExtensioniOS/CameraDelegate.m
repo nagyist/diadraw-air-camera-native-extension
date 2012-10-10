@@ -38,6 +38,7 @@ CFMutableDictionaryRef pixelBufferAttributes;
 CFDictionaryRef emptyIOSurfaceAttributes;
 AVCaptureSession * captureSession;
 AVCaptureVideoDataOutput * videoDataOutput;
+AVCaptureDeviceInput * cameraInput;
 AVCaptureDevice * currentDevice;
 
 
@@ -121,6 +122,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     { 
         [ captureSession stopRunning];
         [ captureSession removeOutput: videoDataOutput ];
+        [ captureSession removeInput: cameraInput ];
     }
 }
 
@@ -255,7 +257,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     }
     
     NSError * error = nil;
-    AVCaptureDeviceInput * cameraInput = [ AVCaptureDeviceInput deviceInputWithDevice: currentDevice error: &error ];
+    /*AVCaptureDeviceInput **/ cameraInput = [ AVCaptureDeviceInput deviceInputWithDevice: currentDevice error: &error ];
     if (!error) 
     {
         if ( [ captureSession canAddInput: cameraInput ] ) 
