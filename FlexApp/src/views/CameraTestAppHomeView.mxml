@@ -76,7 +76,7 @@
 			protected function btnAutoWhiteBalance_clickHandler( _event : MouseEvent ):void
 			{
 				m_whiteBalanceOptions.closeDropDown();	
-				m_cameraExt.setWhiteBalanceMode( NativeCameraExtension.WhiteBalanceModeContinuousAutoWhiteBalance );
+				m_cameraExt.setWhiteBalanceMode( NativeCameraExtension.WhiteBalanceModeAutoWhiteBalance );
 			}
 			
 			
@@ -97,7 +97,7 @@
 			protected function btnAutoFocus_clickHandler( _event : MouseEvent ):void
 			{
 				m_focusOptions.closeDropDown();				
-				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeContinuousAutoFocus );
+				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeAutoFocus );
 			}
 
 			
@@ -166,8 +166,8 @@
 				
 				var pointOfInterest : Point = new Point( imgPoint.x / w, imgPoint.y / h );
 
-				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeLocked, pointOfInterest );
-				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeLocked, pointOfInterest );
+				m_cameraExt.setExposureMode( NativeCameraExtension.ExposureModeContinuousAutoExposure, pointOfInterest );
+				m_cameraExt.setFocusMode( NativeCameraExtension.FocusModeContinuousAutoFocus, pointOfInterest );
 			}
 			
 			
