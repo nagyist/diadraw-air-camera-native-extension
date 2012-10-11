@@ -135,6 +135,15 @@ package com.diadraw.extensions.camera
 		}
 		
 		
+		/** 
+		 * Sets the focus mode.
+		 * 
+		 * @param _mode: Use one of the NativeCameraExtension.FocusMode* constants 
+		 * @param _pointOfInterest: Optional point of interest, which is supported on some devices.
+		 * 							(0, 0) corresponds to the top left and (1, 1) - to the bottom right
+		 * 							of the picture area with the home button on the right - 
+		 * 							applies even if the device is in portrait mode
+		 */ 
 		public function setFocusMode( _mode : Number, _pointOfInterest : Point = null ) : void
 		{
 			ensureContext();
@@ -151,6 +160,11 @@ package com.diadraw.extensions.camera
 		}
 		
 		
+		/** 
+		 * Sets the white balance mode.
+		 * 
+		 * @param _mode: Use one of the NativeCameraExtension.WhiteBalanceMode* constants 
+		 */ 
 		public function setWhiteBalanceMode( _mode : Number ) : void
 		{
 			ensureContext();
@@ -158,6 +172,11 @@ package com.diadraw.extensions.camera
 		}
 		
 		
+		/** 
+		 * Allows you to rotate the frame to an arbitrary angle.
+		 * 
+		 * @param _angleDegrees: The rotation angle in degrees
+		 */ 
 		public function setRotationAngle( _angleDegrees : Number ) : void
 		{
 			ensureContext();
@@ -166,6 +185,12 @@ package com.diadraw.extensions.camera
 		}
 		
 		
+		/** 
+		 * Allows you to translate the frame.
+		 * 
+		 * @param _offsetX: Horizontal translation offset in pixels
+		 * @param _offsetY: Vertical translation offset in pixels
+		 */
 		public function setTranslationPoint( _offsetX : Number, _offsetY : Number ) : void
 		{
 			ensureContext();
@@ -174,6 +199,14 @@ package com.diadraw.extensions.camera
 		}
 		
 		
+		/** 
+		 * Allows you to define a rectangle for cropping the frame.
+		 * 
+		 * @param _x: Crop rectangle left coordinate in pixels.
+		 * @param _y: Crop rectangle top coordinate in pixels.
+		 * @param _w: Crop rectangle width in pixels.
+		 * @param _h: Crop rectangle height in pixels.
+		 */
 		public function setCropRectanglePixels( _x : Number, _y : Number, _w : Number, _h : Number ) : void
 		{
 			ensureContext();
