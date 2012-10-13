@@ -144,7 +144,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     }
     else
     {
-        sendMessage( MSG_ERROR, @"Exposure mode not supported" );
+        sendMessage( MSG_ERROR, @"White balance mode not supported" );
     }
 }
 
