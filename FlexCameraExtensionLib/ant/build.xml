@@ -1,80 +1,117 @@
 <?xml version="1.0" encoding="UTF-8"?>
-	<project name="FlexCameraExtensionLib" default="package ane" basedir=".">
-	    
+<project name="FlexCameraExtensionLib Build Script" default="package ane" > 
+
+	<!-- Customize the following two files: -->
+	<property file="build.properties"/>
+	<property file="local.properties"/>
+	<!-- property file="FlexCameraExtensionLib/ant/build.properties"/>
+	<property file="FlexCameraExtensionLib/ant/local.properties"/ -->
+	
+	<!-- Temporary path structure for putting build results in: -->
+	<property name="native.library.outputdir" 	value="${tempdir}/ios"/>
+	
+	<property name="air.library.outputdir" 		value="${tempdir}/swc"/>
+	<property name="air.library.extractdir" 	value="${tempdir}/swc/content"/>
+	
+	<property name="extension.packagedir" 		value="${tempdir}/package"/>
+	<property name="extension.outputdir" 		value="${tempdir}/package/ane"/>
+	
+	
+	<!-- XCode ************************************************************ -->
+	
+	<!-- Clean the XCode project -->
+	<target name="clean ios" description="Clean iOS Library">
+		<exec executable="xcodebuild" failonerror="true" dir="${native.library.root}">
+			<arg line="
+				clean
+			    -configuration ${build_type_iOS}
+			"/>
+		</exec>
+	</target>
+	
+	
+	<!-- Build the XCode project -->
+	<target name="build ios" description="Build iOS Library">
+		<exec executable="xcodebuild" failonerror="true" dir="${native.library.root}">
+			<arg line="
+				-project ${native.library.name}.xcodeproj
+				-target ${native.library.name}
+				-configuration ${build_type_iOS}
+				SYMROOT=${native.library.builddir}
+			"/> <!-- Note: SYMROOT is relative to the path that the dir parameter above is set to. -->
+		</exec>
 		
-		<!-- All properties are defined in these two files: -->
-	    <property file="local.properties" />
-	    <property file="build.properties" />
-	    
+		<copy file="${native.library.root}/${native.library.builddir}/${build_type_iOS}-iphoneos/${native.library}" todir="${native.library.outputdir}" overwrite="true"/>
+	</target>
+	
+	<!-- Do a clean build of the XCode project -->
+	<target name="rebuild ios" depends="clean ios,build ios" description="Do a clean build of the XCode project"/>
+	
+	
+	
+	<!-- ActionScript ************************************************************ -->
+	
+	<!-- Build the SWC library -->
+	<target name="build swc" description="Build swc library">
+		<mkdir dir="${air.library.extractdir}"/>
+
+		<fileset dir="${air.library.sourcedir}" casesensitive="yes" id="classfiles">
+			<include name="**/*.as"/>
+		</fileset>
+
+		<pathconvert property="classlist" refid="classfiles" pathsep=" " dirsep=".">
+			<regexpmapper from=".*src.(.*)\.as" to="\1"/>
+		</pathconvert>
+
+		<exec executable="${COMPC}" failonerror="true">
+			<arg line="
+				+configname=airmobile
+				-source-path ${air.library.sourcedir}
+				-output ${air.library.outputdir}/${air.library.name}.swc
+				-include-classes ${classlist}
+			"/>
+		</exec>
+
+		<unzip src="${air.library.outputdir}/${air.library.name}.swc" dest="${air.library.extractdir}" overwrite="true"/>
+		<copy file="${air.library.extractdir}/library.swf" todir="${air.library.outputdir}" overwrite="true"/>
 		
-		<!-- The clean target gets rid of the products of our previous build: -->
-	    <target name="clean">
-	        <delete dir="${lib.builddir}"/>
-	        <mkdir dir="${lib.builddir}"/>
-	    </target>
-	    
-		
-		<!-- Run the compc Flex compiler to build the .swc file of the AIR library: -->
-	    <target name="build" depends="clean">
-	        <exec executable="${COMPC}">
-	            <arg line="
-	    			+configname=airmobile
-	                -output ${lib.builddir}/${lib.libname}.swc
-	            	-source-path+=${lib.sourcedir}
-	            	-include-classes+=com.diadraw.extensions.camera.NativeCameraExtension
-	                -load-config+=FlexCameraExtensionLib_flex.config 
-	            "/>
-	        </exec>
-	    </target>
-		
-		
-		<!-- Prepare paths and gather the ingredients for the ANE package: -->
-		<target name="copy files for packaging" depends="build">
-			<!-- Delete any old packages and create a folder to put the files in: -->
-			<delete dir="${lib.packagedir}"/>
-			<mkdir  dir="${lib.packagedir}"/>
-			<!-- Inside that folder, create a subfolder, where the ANE file will be put. 
-				 Note: when the ANE package is created, anything that is in the same folder as the ANE
-				 will be put inside the package, thus it's best to start with an empty folder. -->
-			<mkdir  dir="${lib.packageoutput}"/>
+		<mkdir dir="${libsdir}"/>
+		<copy file="${air.library.outputdir}/${air.library.name}.swc" todir="${libsdir}" overwrite="true"/>
+		<delete dir="${air.library.extractdir}"/>
+	</target>
+	
+	
+	<!-- Create the ANE package -->
+	<target name="package ane" depends="rebuild ios, build swc" description="Package the extension into an ANE file">
+		<mkdir  dir="${extension.packagedir}"/>
+		<mkdir  dir="${extension.outputdir}"/>
 			
-			<!-- First ingredient: the library SWC file, which is really an archive of
-				 two files: library.swf and catalog.xml.
-				 We only need library.swf, so we unzip the SWC and delete catalog.xml:  -->
-			<copy file="${lib.builddir}/${lib.swcfilename}" tofile="${lib.packagedir}/${lib.swcfilename}"/>
-			<unzip src="${lib.packagedir}/${lib.swcfilename}" dest="${lib.packagedir}"/>
-			<delete file="${lib.packagedir}/catalog.xml"/>
+		<!-- The next two ingredients are the two .xml files the accompany the extension:  -->
+		<copy file="${air.library.sourcedir}/${extension.options}" 				todir="${extension.packagedir}"/>
+		<copy file="${air.library.sourcedir}/${extension.platform.options}"  	todir="${extension.packagedir}"/>
+		
+		<copy file="${native.library.outputdir}/${native.library}"				todir="${extension.packagedir}"/>
+		<copy file="${air.library.outputdir}/${air.library.name}.swc"			todir="${extension.packagedir}"/>
+		<copy file="${air.library.outputdir}/library.swf"						todir="${extension.packagedir}"/>
 			
-			<!-- The next two ingredients are the two .xml files the accompany the extension:  -->
-			<copy file="${lib.sourcedir}/${package.extenxion_options}" tofile="${lib.packagedir}/${package.extenxion_options}"/>
-			<copy file="${lib.sourcedir}/${package.platform_options}" tofile="${lib.packagedir}/${package.platform_options}"/>
-			
-			<!-- And last, we need the native .a library:  -->
-			<copy file="${lib.native_library_path}/${lib.native_library}" tofile="${lib.packagedir}/${lib.native_library}" />
-		</target>
+		<exec executable="${ADT}" failonerror="true" dir="${extension.packagedir}">
+			<arg line="       	
+				-package 
+				-target ane 
+				ane/${air.library.name}.ane
+				${extension.options} 
+				-swc ../swc/${air.library.name}.swc
+				-platform iPhone-ARM 
+				-C . .
+				-platformoptions ${extension.platform.options}
+			"/>
+		</exec>
 		
+		<delete dir="${anedir}"/>
+		<mkdir dir="${anedir}"/>
+		<move file="${extension.outputdir}/${air.library.name}.ane" todir="${anedir}"/>
 		
-		<!-- All the ingredients for the ANE package have been gathered, now create the package: -->
-		<target name="package ane" depends="copy files for packaging">
-			<exec executable="${ADT}">
-				<arg line="       	
-				      		-package 
-							-target ane 
-							 ${lib.packageoutput}/${package.ane}
-							 ${lib.packagedir}/${package.extenxion_options} 
-							-swc ${lib.packagedir}/${lib.swcfilename} 
-							-platform iPhone-ARM 
-							-C ${lib.packagedir} .
-							-platformoptions ${lib.packagedir}/${package.platform_options}
-				"/>
-			</exec>
-			
-			<!-- The ANE is now inside ant/package/ane, copy it where we want it to end up for use from apps
-				 and clean up the files we copied earlier, but no longer need: -->
-			<delete file="${package.destinationdir}/${package.ane}" />
-			<copy file="${lib.packageoutput}/${package.ane}" tofile="${package.destinationdir}/${package.ane}" />
-			<delete dir="${lib.packagedir}"/>
-		</target>
-		
-		
-	</project>
+		<delete dir="${tempdir}"/>
+	</target>
+
+</project>
