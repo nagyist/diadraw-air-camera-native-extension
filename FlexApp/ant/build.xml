@@ -2,14 +2,25 @@
 
 <!-- /** 
 * Native camera extension example 
-* @author Radoslava Leseva, diadraw.com
+* @author Radoslava Leseva, www.diadraw.com
 */ -->
 	 	
-<project name="CameraTestApp" default="package ipa" basedir=".">
+<project name="CameraTestApp" default="install" basedir=".">
  
 	<!-- All properties are defined in these two files: -->
     <property file="local.properties" />
     <property file="build.properties" />
+	
+	<property name="app.packagedir" 		value="${tempdir}/package"/>
+	<property name="app.packageoutput" 		value="${tempdir}/package/app"/>
+	
+	
+	<!-- Build and package the native extensions, used by the app -->
+	<target name="package extensions">
+	    <subant target="package ane">
+	      <fileset dir="${ext.builddir}" includes="build.xml"/>
+	    </subant>
+	</target>
 	
 	
 	<!-- The clean target gets rid of the products of our previous build: -->
@@ -21,27 +32,29 @@
 	
 	<!-- We need to copy the assets/ folder, any icon files and the app descriptor file (-app.xml) -->
 	<target name="copy files for building" depends="clean">
+		<mkdir dir="${app.assetsdir}"/>
+		
 		<copy todir="${app.builddir}" preservelastmodified="true" verbose="true">
-	    	<fileset dir="${app.sourcedir}">
-	        	<patternset>
-	            	<include name="assets/**"/>
-	                <include name="*.png"/>
-	                <include name="*.xml"/>
-	        	</patternset>
-	    	</fileset>
-		</copy>	        
+			<fileset dir="${app.sourcedir}">
+				<patternset>
+			    	<include name="assets/**"/>
+			        <include name="*.png"/>
+			        <include name="*.xml"/>
+			    </patternset>
+			</fileset>
+		</copy>	 	        
 	</target>
 	    
 	
 	<!-- Run the mcmlc Flex compiler to build the .swf file for the app: -->
-	<target name="build" depends="copy files for building">
-		<exec executable="${MXMLC}">
+	<target name="build" depends="package extensions, copy files for building">
+		<exec executable="${MXMLC}" failonerror="true">
 	    	<arg line="
-	        		 +configname=airmobile 
-	        		 -output ${app.builddir}/${app.swffile}
-	        		 ${app.source} 
-	        		 -source-path+=${app.sourcedir}
-	        		 -load-config+=${app.name}_flex.config
+	        	+configname=airmobile 
+	        	-output ${app.builddir}/${app.name}.swf
+	        	${app.main.file} 
+	        	-source-path+=${app.sourcedir}
+	    		-external-library-path+=${ext.libdir}
 	       	"/>
 		</exec>
 	</target>
@@ -56,6 +69,8 @@
 						 Note: when the ANE package is created, anything that is in the same folder as the ANE
 						 will be put inside the package, thus it's best to start with an empty folder. -->
 		<mkdir  dir="${app.packageoutput}"/>
+		
+		<mkdir  dir="${app.packagedir}/assets"/>
 			
 		<!-- Copy the app SWF file, its descriptor and all assets and icons: -->
 		<copy todir="${app.packagedir}" preservelastmodified="true" verbose="true">
@@ -68,44 +83,89 @@
 				</patternset>
 			</fileset>
 		</copy>
-		
-		<!-- Copy any extension files -->
-		<delete dir="${package.extensiondir}"/>
-		<mkdir dir="${package.extensiondir}"/>
-		
-		<copy todir="${package.extensiondir}" preservelastmodified="true" verbose="true">
-			<fileset dir="${ext.extensiondir}">
-				<patternset>
-					<include name="*.ane"/>
-				</patternset>
-			</fileset>
-		</copy>
 	</target>
 	
 	<!-- All the ingredients for the IPA package have been gathered, now create the package: -->
-	<target name="package ipa" depends="copy files for packaging">
-		<exec executable="${ADT}">
+	<target name="package" depends="copy files for packaging">
+		<delete dir="${package.outputdir}"/>
+		<mkdir dir="${package.outputdir}"/>
+		
+		<exec executable="${ADT}" failonerror="false">
 	    	<arg line="-package
 	                   -target ${package.target_type}
 	                   -storetype ${package.storetype}
 	                   -keystore ${package.privatekey}
 	    			   -storepass ${package.storepass}
 	                   -provisioning-profile ${package.mobileprovision}
-	    				${app.packageoutput}/${package.ipa}
+	    				${app.packageoutput}/${package.app}
 	    				${app.packagedir}/${app.descriptor}
-	    			   -C ${app.packagedir}  ${app.swffile}
-	            	   -platformsdk ${IOS_SDK}
-	                   -extdir ${package.extensiondir}
+	    			   -C ${app.packagedir}  ${app.name}.swf
+	            	   -platformsdk ${deploy.platform.sdk}
+	                   -extdir ${ext.extensiondir}
 	    				assets
 	    	"/>
 		</exec>
 		
-		<!-- The IPA is now inside ant/package/ane, copy it where we want it to end up for use from apps
-			 and clean up the files we copied earlier, but no longer need: -->
-		<delete file="${package.destinationdir}/${package.ipa}" />
-		<copy file="${app.packageoutput}/${package.ipa}" tofile="${package.destinationdir}/${package.ipa}" />
-		<delete dir="${app.packagedir}"/>
-		<delete dir="${package.extensiondir}"/>
+		<!-- startswith string="${package.target_type}" with="ipa-debug" -->
+			<copy todir="${package.outputdir}/${app.name}.app.dSYM" overwrite="true">
+		    	<fileset dir="${app.packageoutput}/${app.name}.app.dSYM"/>
+		    </copy>
+
+		<!-- /startswith -->
+		
+		<!-- delete file="${package.outputdir}/${package.app}"/-->
+		<copy file="${app.packageoutput}/${package.app}" tofile="${package.outputdir}/${package.app}" overwrite="true"/>
+		<!-- delete dir="${app.packagedir}"/>
+		<delete dir="${package.extensiondir}"/ -->
+		
+		<delete dir="${tempdir}"/>
+	</target>
+	
+	
+	<!-- target name="devices" description="List available devices">
+		<echo> "Available devices: "</echo>
+				
+		<exec executable="${ADT}" failonerror="true">
+			<arg line="-devices ${deploy.platform} "/>
+		</exec>
+	</target -->
+	
+	
+	<target name="uninstall" description="Uninstall the app from the device">
+		<exec executable="${ADT}" failonerror="true">
+			<arg line="
+				-uninstallApp 
+				-platform ${deploy.platform} 
+				-platformsdk ${deploy.platform.sdk} 
+				-device ${deploy.device.handle} 
+				-appid ${deploy.app.id}
+			"/>
+		</exec>
+	</target>
+	
+	
+	<!-- Note: -package expects the path to the file -->
+	<target name="install" depends="package, uninstall" description="Install the app on the device">
+		<exec executable="${ADT}" failonerror="true">
+			<arg line="
+				-installApp 
+				-platform ${deploy.platform} 
+				-platformsdk ${deploy.platform.sdk} 
+				-device ${deploy.device.handle} 
+				-package ${deploy.package}
+			"/>
+		</exec>
+	</target>
+	
+	
+	<!-- List the IDs of all connected devices for the platform we are building -->
+	<target name="devices" description="Get connected device IDs">
+		<exec executable="${ADT}">
+			<arg line="
+				-devices 
+				-platform ${deploy.platform} 
+			"/>
+		</exec>
 	</target>
  
 </project>
