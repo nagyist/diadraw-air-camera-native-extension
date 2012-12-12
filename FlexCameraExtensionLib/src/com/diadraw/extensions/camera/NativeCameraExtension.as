@@ -5,8 +5,6 @@
 
 package com.diadraw.extensions.camera
 {
-	import flash.display.BitmapData;
-	import flash.events.DataEvent;
 	import flash.events.EventDispatcher;
 	import flash.events.IEventDispatcher;
 	import flash.events.StatusEvent;
@@ -219,20 +217,18 @@ package com.diadraw.extensions.camera
 		{
 			if ( null == m_extContext )
 			{
-				m_extContext = ExtensionContext.createExtensionContext( EXTENSION_ID, null);
-				
 				try
 				{
 					m_extContext = ExtensionContext.createExtensionContext( EXTENSION_ID, null );
+					
+					m_extContext.removeEventListener( StatusEvent.STATUS, onStatusEvent );
+					m_extContext.addEventListener( StatusEvent.STATUS, onStatusEvent );
 				}
 				catch ( error : ArgumentError )
 				{
 					dispatchEvent( new NativeCameraExtensionEvent( NativeCameraExtensionEvent.STATUS_EVENT, "Error: " + error.toString() ) );
 				}
 			}
-			
-			m_extContext.removeEventListener( StatusEvent.STATUS, onStatusEvent );
-			m_extContext.addEventListener( StatusEvent.STATUS, onStatusEvent );
 		}
 		
 			
@@ -273,3 +269,90 @@ package com.diadraw.extensions.camera
 		private static const EXTENSION_ID : String = "com.diadraw.extensions.camera.NativeCameraExtension";
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
