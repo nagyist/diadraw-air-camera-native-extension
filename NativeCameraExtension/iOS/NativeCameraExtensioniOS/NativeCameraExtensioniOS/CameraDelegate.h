@@ -46,4 +46,10 @@ typedef void ( *SendMessageCallBackType )( const NSString * const, const NSStrin
                focusX : ( CGFloat ) focusX
                focusY : ( CGFloat ) focusY;
 
+- (void) setWhiteBalanceMode : ( AVCaptureWhiteBalanceMode ) whiteBalanceMode;
+
+- (void) setTorchMode : ( AVCaptureTorchMode ) torchMode;
+
+- (BOOL) isTorchAvailable;
+
 @end

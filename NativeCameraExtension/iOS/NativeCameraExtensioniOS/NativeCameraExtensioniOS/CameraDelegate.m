@@ -149,6 +149,32 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
 }
 
 
+- (BOOL) isTorchAvailable 
+{
+    return [ currentDevice hasTorch ];
+}
+
+
+- (void) setTorchMode : ( AVCaptureTorchMode ) torchMode
+{
+    if ( [ currentDevice isTorchModeSupported: torchMode ] )
+    {
+        NSError * error = nil;
+        
+        if ( [ currentDevice lockForConfiguration: &error ] )
+        {
+            
+            [ currentDevice setTorchMode: torchMode ];
+            
+            [ currentDevice unlockForConfiguration ];
+        }
+    }
+    else
+    {
+        sendMessage( MSG_ERROR, @"Torch mode not supported" );
+    }
+}
+
 
 - (void) setFocusMode : ( AVCaptureFocusMode ) focusMode
                focusX : ( CGFloat ) focusX

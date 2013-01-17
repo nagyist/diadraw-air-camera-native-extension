@@ -171,12 +171,38 @@ FREObject ASSetWhiteBalanceMode( FREContext cts, void* funcData, uint32_t argc, 
     
     assert( AVCaptureWhiteBalanceModeLocked <= whiteBalanceMode && whiteBalanceMode <= AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance );
     
-    
     [ cameraDelegate setWhiteBalanceMode: whiteBalanceMode ];
     
     return NULL;
 }
 
+
+FREObject ASSetTorchMode( FREContext cts, void* funcData, uint32_t argc, FREObject argv[] )
+{
+    ensureCameraDelegate();
+    
+    int32_t torchMode = 0;
+    FREGetObjectAsInt32( argv[ 0 ], &torchMode );
+    
+    assert( AVCaptureTorchModeOff <= torchMode && torchMode <= AVCaptureTorchModeAuto );
+    
+    [ cameraDelegate setTorchMode: torchMode ];
+    
+    return NULL;
+}
+
+
+FREObject ASHasTorch( FREContext cts, void* funcData, uint32_t argc, FREObject argv[] )
+{
+    ensureCameraDelegate();
+    
+    BOOL hasTorch = [ cameraDelegate isTorchAvailable ];
+    
+    FREObject hasTorchResult = nil;
+    FRENewObjectFromBool( hasTorch, &hasTorchResult );
+    
+    return hasTorchResult;
+}
 
 
 FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
@@ -276,67 +302,30 @@ FREObject ASSetCropRectanglePixels( FREContext ctx, void* funcData, uint32_t arg
 void CameraExtensionContextInitializer( void * extData, 
                                         const uint8_t* ctxType, 
                                         FREContext ctx, 
-                                        uint32_t* numFunctionsToTest, 
+                                        uint32_t* numFunctionsToSet, 
                                         const FRENamedFunction** functionsToSet )
 {
-    typedef enum 
+    static FRENamedFunction extensionFunctions[] =
     {
-        AS_START_VIDEO_CAMERA       = 0,
-        AS_STOP_VIDEO_CAMERA        = 1,
-        AS_SET_AUTO_EXPOSE          = 2,
-        AS_SET_AUTO_FOCUS           = 3,
-        AS_SET_AUTO_WHITE_BALANCE   = 4,
-        AS_GET_FRAME_BUFFER         = 5,
-        AS_SET_ROTATION_ANGLE       = 6,
-        AS_SET_TRANSLATION_PIXELS   = 7,
-        AS_SET_CROP_RECTANGLE       = 8,
-        
-        AS_METHOD_COUNT
-    } ASMethods;
+        { "as_startVideoCamera",        NULL, &ASStartVideoCamera },
+        { "as_stopVideoCamera",         NULL, &ASStopVideoCamera },
+        { "as_setExposureMode",         NULL, &ASSetExposureMode },
+        { "as_setFocusMode",            NULL, &ASSetFocusMode },
+        { "as_setWhiteBalance",         NULL, &ASSetWhiteBalanceMode },
+        { "as_getFrameBuffer",          NULL, &ASGetFrameBuffer },
+        { "as_setRotationAngle",        NULL, &ASSetRotationAngle },
+        { "as_setTranslationPoint",     NULL, &ASSetTranslationPoint },
+        { "as_setCropRectanglePixels",  NULL, &ASSetCropRectanglePixels },
+        { "as_setTorchMode",            NULL, &ASSetTorchMode },
+        { "as_hasTorch",                NULL, &ASHasTorch }
+    };
     
-
-	*numFunctionsToTest = AS_METHOD_COUNT;
+    *numFunctionsToSet =
+    sizeof( extensionFunctions ) / sizeof( FRENamedFunction );
     
-	FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctionsToTest));
-	func[ AS_START_VIDEO_CAMERA ].name = (const uint8_t*) "as_startVideoCamera";
-	func[ AS_START_VIDEO_CAMERA ].functionData = NULL;
-    func[ AS_START_VIDEO_CAMERA ].function = &ASStartVideoCamera;
+    *functionsToSet = extensionFunctions;
     
-    func[ AS_STOP_VIDEO_CAMERA ].name = (const uint8_t*) "as_stopVideoCamera";
-	func[ AS_STOP_VIDEO_CAMERA ].functionData = NULL;
-    func[ AS_STOP_VIDEO_CAMERA ].function = &ASStopVideoCamera;
-    
-    func[ AS_SET_AUTO_EXPOSE ].name = (const uint8_t*) "as_setExposureMode";
-	func[ AS_SET_AUTO_EXPOSE ].functionData = NULL;
-    func[ AS_SET_AUTO_EXPOSE ].function = &ASSetExposureMode;
-    
-    func[ AS_SET_AUTO_FOCUS ].name = (const uint8_t*) "as_setFocusMode";
-	func[ AS_SET_AUTO_FOCUS ].functionData = NULL;
-    func[ AS_SET_AUTO_FOCUS ].function = &ASSetFocusMode;
-    
-    func[ AS_SET_AUTO_WHITE_BALANCE ].name = (const uint8_t*) "as_setWhiteBalance";
-	func[ AS_SET_AUTO_WHITE_BALANCE ].functionData = NULL;
-    func[ AS_SET_AUTO_WHITE_BALANCE ].function = &ASSetWhiteBalanceMode;
-    
-    func[ AS_GET_FRAME_BUFFER ].name = (const uint8_t*) "as_getFrameBuffer";
-	func[ AS_GET_FRAME_BUFFER ].functionData = NULL;
-    func[ AS_GET_FRAME_BUFFER ].function = &ASGetFrameBuffer;
-    
-    func[ AS_SET_ROTATION_ANGLE ].name = (const uint8_t*) "as_setRotationAngle";
-	func[ AS_SET_ROTATION_ANGLE ].functionData = NULL;
-    func[ AS_SET_ROTATION_ANGLE ].function = &ASSetRotationAngle;
-    
-    func[ AS_SET_TRANSLATION_PIXELS ].name = (const uint8_t*) "as_setTranslationPoint";
-	func[ AS_SET_TRANSLATION_PIXELS ].functionData = NULL;
-    func[ AS_SET_TRANSLATION_PIXELS ].function = &ASSetTranslationPoint;
-    
-    func[ AS_SET_CROP_RECTANGLE ].name = (const uint8_t*) "as_setCropRectanglePixels";
-	func[ AS_SET_CROP_RECTANGLE ].functionData = NULL;
-    func[ AS_SET_CROP_RECTANGLE ].function = &ASSetCropRectanglePixels;
-    
-	*functionsToSet = func;
-	
-	g_ctx = ctx;
+    g_ctx = ctx;
 }
 
 
