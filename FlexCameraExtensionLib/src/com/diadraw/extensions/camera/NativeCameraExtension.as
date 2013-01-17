@@ -27,6 +27,10 @@ package com.diadraw.extensions.camera
 		public static const WhiteBalanceModeAutoWhiteBalance   			: Number = 1; // The device performs an auto white balance operation now.
 		public static const WhiteBalanceModeContinuousAutoWhiteBalance 	: Number = 2; // The device continuously monitors white balance and adjusts when necessary.
 		
+		public static const TorchModeOff 	: Number = 0;
+		public static const TorchModeOn 	: Number = 1;
+		public static const TorchModeAuto	: Number = 2;
+		
 		
 		public static const PresetPhoto 			: String = "AVCaptureSessionPresetPhoto";
 		public static const PresetHigh 				: String = "AVCaptureSessionPresetHigh";
@@ -167,6 +171,28 @@ package com.diadraw.extensions.camera
 		{
 			ensureContext();
 			m_extContext.call( "as_setWhiteBalance", _mode );	
+		}
+		
+		
+		/** 
+		 * Sets the torch mode, if the device has a torch.
+		 * 
+		 * @param _mode: Use one of the NativeCameraExtension.TorchMode* constants 
+		 */ 
+		public function setTorchMode( _mode : Number ) : void
+		{
+			ensureContext();
+			m_extContext.call( "as_setTorchMode", _mode );	
+		}
+		
+		
+		/** 
+		 * Checks whether the device has a torch. 
+		 */ 
+		public function hasTorch() : Boolean
+		{
+			ensureContext();
+			return m_extContext.call( "as_hasTorch" ) as Boolean;	
 		}
 		
 		
