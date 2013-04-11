@@ -32,8 +32,6 @@
 				
 				m_usingFrontCamera = false;
 				m_isVideoInProgress = false;
-
-				initChannelMaps();
 			}
 			
 			
@@ -49,13 +47,13 @@
 			}
 
 			
-			protected function btnVideoCamera_clickHandler( _event : MouseEvent ):void
+			private function toggleCameraPreview() : void
 			{
 				if ( m_isVideoInProgress )
 				{
 					m_btnVideoCamera.label = "Start Video Camera";
 					m_btnVideoCamera.setStyle( "color", 0x000000 );
-
+					
 					m_cameraExt.stopVideoCamera();
 				}
 				else
@@ -71,6 +69,12 @@
 				}
 				
 				m_isVideoInProgress = !m_isVideoInProgress;
+			}
+			
+			
+			protected function btnVideoCamera_clickHandler( _event : MouseEvent ):void
+			{
+				toggleCameraPreview();
 			}	
 			
 			
@@ -85,6 +89,7 @@
 					if ( !m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, m_usingFrontCamera ) )
 					{
 						addToLog( "Camera swap failed" );
+						toggleCameraPreview();
 					}
 					
 					btnSwapCameras.label = btnSwapCameraLabel;
@@ -233,6 +238,8 @@
 				
 				if ( currentFrameIdx != m_lastFrameIdx )
 				{
+					// The byte array is set to RGBA, little endian on the native side, so make sure we read the same way:
+					m_byteArray.endian = Endian.LITTLE_ENDIAN;
 					displayFrame( m_byteArray );
 					m_lastFrameIdx = currentFrameIdx;
 				} 	
@@ -246,7 +253,6 @@
 				var renderRect : Rectangle = new Rectangle( 0, 0, m_lastFrameWidth, m_lastFrameHeight );
 				
 				bd.setPixels( renderRect, _byteArray );
-				bd.paletteMap( bd, renderRect, new Point( 0, 0 ), MAP_GREEN, MAP_RED, MAP_ALPHA, MAP_BLUE );
 				
 				var m : Matrix = new Matrix();
 				var w : Number = bd.width;
@@ -303,6 +309,8 @@
 				
 				m_image.graphics.clear();
 				m_image.source = orientedBd;
+				
+				m_byteArray = null;
 			}
 			
 			
@@ -317,19 +325,6 @@
 				m_log.appendText( "\n" + _message );
 				
 				m_log.visible = m_log.text.length > 0;
-			}
-
-			
-			private function initChannelMaps():void
-			{
-				// Function cortesy of Per Holmes
-				for ( var i : uint = 0 ; i < 256 ; ++i )
-				{
-					MAP_ALPHA[ i ]     = 0xff000000;
-					MAP_RED[ i ]       = i << 16;
-					MAP_GREEN[ i ]     = i << 8;
-					MAP_BLUE[ i ]      = i;
-				}                
 			}
 			
 			
@@ -352,17 +347,10 @@
 			[Bindable]
 			private var m_isVideoInProgress : Boolean;
 			
-			private var MAP_RED 	: Array = new Array( 256 );
-			private var MAP_GREEN 	: Array = new Array( 256 );
-			private var MAP_BLUE 	: Array = new Array( 256 );
-			private var MAP_ALPHA	: Array = new Array( 256 );
-			
 			private const FOCUS_RECT_SIZE_PIX : Number = 60;
 			private const FOCUS_RECT_HALF_SIZE_PIX : Number = FOCUS_RECT_SIZE_PIX * 0.5;
 			
-			private const RESOLUTION_PRESET : String = NativeCameraExtension.Preset640x480; 
-			private const FRAME_WIDTH : Number = 640; 
-			private const FRAME_HEIGHT : Number = 480; 
+			private const RESOLUTION_PRESET : String = NativeCameraExtension.PresetiFrame960x540; 
 			
 			private const MIN_FRAMES_PER_SECOND : Number = 15;
 			private const MAX_FRAMES_PER_SECOND : Number = 15;
@@ -404,7 +392,7 @@
 			
 			
 			
-			<s:CalloutButton id="m_whiteBalanceOptions" label="White Balance" horizontalPosition="end"
+			<s:CalloutButton id="m_whiteBalanceOptions" label="Wh. Balance" horizontalPosition="end"
 							 verticalPosition="after">
 				<s:calloutLayout>
 					<s:VerticalLayout/>

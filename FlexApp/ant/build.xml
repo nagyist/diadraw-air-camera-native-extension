@@ -5,26 +5,37 @@
 * @author Radoslava Leseva, www.diadraw.com
 */ -->
 	 	
-<project name="CameraTestApp" default="install" basedir=".">
+<project name="AirMobileApp" default="package" basedir=".">
  
 	<!-- All properties are defined in these two files: -->
     <property file="local.properties" />
     <property file="build.properties" />
 	
-	<property name="app.packagedir" 		value="${tempdir}/package"/>
-	<property name="app.packageoutput" 		value="${tempdir}/package/app"/>
+	
+	<!-- All building and gathering of files for the application package will happen in a temporary folder: -->	
+	<property name="tempdir"			value="temp"/>
+	<property name="app.packagedir" 	value="${tempdir}/package"/>
+	<property name="app.packageoutput" 	value="${tempdir}/package/app"/>
+	<property name="ext.extensiondir"	value="${tempdir}/ane"/>
 	
 	
-	<!-- Build and package the native extensions, used by the app -->
-	<target name="package extensions">
-	    <subant target="package ane">
-	      <fileset dir="${ext.builddir}" includes="build.xml"/>
-	    </subant>
+	<!-- Build and package the native extensions used by the app -->
+	<target name="package extensions" depends="set build type, set deployment type" description="Build and package the extensions used by the app">
+		<subant target="${ane.target}">
+			<property name="iOS.library.build.type" value="${iOS.build.type}"/>
+			<fileset dir="${ext.builddir}" includes="build.xml"/>
+		</subant>
+	</target>
+	
+
+	<target name="copy extension packages" description="Copy the ANE files for the extensions used by the app">
+		<mkdir dir="${ext.extensiondir}"/>
+		<copy file="${ext.anedir}/${ext.file}" todir="${ext.extensiondir}" preservelastmodified="true"/>
 	</target>
 	
 	
-	<!-- The clean target gets rid of the products of our previous build: -->
-	<target name="clean">
+	<!-- Clean up after the last build: -->
+	<target name="clean" description="Get rid of the previous build files">
 		<delete dir="${app.builddir}"/>
 		<mkdir dir="${app.builddir}"/>
 	</target>
@@ -44,32 +55,29 @@
 			</fileset>
 		</copy>	 	        
 	</target>
-	    
 	
+
 	<!-- Run the mcmlc Flex compiler to build the .swf file for the app: -->
-	<target name="build" depends="package extensions, copy files for building">
+	<target name="build" depends="set build type, copy extension packages, copy files for building">
 		<exec executable="${MXMLC}" failonerror="true">
 	    	<arg line="
-	        	+configname=airmobile 
+	        	+configname=airmobile
+	    		-debug=${build.debug}
 	        	-output ${app.builddir}/${app.name}.swf
 	        	${app.main.file} 
 	        	-source-path+=${app.sourcedir}
-	    		-external-library-path+=${ext.libdir}
+	    		-external-library-path+=${ext.extensiondir}/${ext.file}
+	    		-incremental=true
 	       	"/>
 		</exec>
 	</target>
 	
 
 	<!-- Prepare paths and gather the ingredients for the IPA package: -->
-	<target name="copy files for packaging" depends="build">
-		<!-- Delete any old packages and create a folder to put the files in: -->
+	<target name="copy files for packaging" depends="build, copy extension packages">
 		<delete dir="${app.packagedir}"/>
 		<mkdir 	dir="${app.packagedir}"/>
-		<!-- Inside that folder, create a subfolder, where the IPA file will be put. 
-						 Note: when the ANE package is created, anything that is in the same folder as the ANE
-						 will be put inside the package, thus it's best to start with an empty folder. -->
 		<mkdir  dir="${app.packageoutput}"/>
-		
 		<mkdir  dir="${app.packagedir}/assets"/>
 			
 		<!-- Copy the app SWF file, its descriptor and all assets and icons: -->
@@ -83,21 +91,30 @@
 				</patternset>
 			</fileset>
 		</copy>
+
 	</target>
 	
+	
+	<target name="copy debug symbols" if="${build.debug}">
+		<copy todir="${ios.package.destination}/${app.name}.app.dSYM" overwrite="true">
+			<fileset dir="${app.packageoutput}/${app.name}.app.dSYM"/>
+		</copy>
+	</target>
+	
+	
 	<!-- All the ingredients for the IPA package have been gathered, now create the package: -->
-	<target name="package" depends="copy files for packaging">
-		<delete dir="${package.outputdir}"/>
-		<mkdir dir="${package.outputdir}"/>
+	<target name="package" depends="set build type, copy files for packaging">
+		<delete dir="${ios.package.destination}"/>
+		<mkdir dir="${ios.package.destination}"/>
 		
 		<exec executable="${ADT}" failonerror="false">
 	    	<arg line="-package
-	                   -target ${package.target_type}
-	                   -storetype ${package.storetype}
-	                   -keystore ${package.privatekey}
-	    			   -storepass ${package.storepass}
-	                   -provisioning-profile ${package.mobileprovision}
-	    				${app.packageoutput}/${package.app}
+	                   -target ${ios.target.type} ${debug.settings}
+	                   -storetype ${ios.storetype}
+	                   -keystore ${ios.privatekey}
+	    			   -storepass ${ios.store.password}
+	                   -provisioning-profile ${ios.mobileprovision}
+	    				${app.packageoutput}/${ios.package}
 	    				${app.packagedir}/${app.descriptor}
 	    			   -C ${app.packagedir}  ${app.name}.swf
 	            	   -platformsdk ${deploy.platform.sdk}
@@ -106,31 +123,19 @@
 	    	"/>
 		</exec>
 		
-		<!-- startswith string="${package.target_type}" with="ipa-debug" -->
-			<copy todir="${package.outputdir}/${app.name}.app.dSYM" overwrite="true">
-		    	<fileset dir="${app.packageoutput}/${app.name}.app.dSYM"/>
-		    </copy>
-
-		<!-- /startswith -->
+		<subant target="copy debug symbols">
+			<property name="build.debug" value="${build.debug}"/>
+			<fileset dir="." includes="build.xml"/>
+		</subant>
 		
-		<!-- delete file="${package.outputdir}/${package.app}"/-->
-		<copy file="${app.packageoutput}/${package.app}" tofile="${package.outputdir}/${package.app}" overwrite="true"/>
-		<!-- delete dir="${app.packagedir}"/>
-		<delete dir="${package.extensiondir}"/ -->
+		<copy file="${app.packageoutput}/${ios.package}" todir="${ios.package.destination}" overwrite="true"/>
+		<copy file="${app.packageoutput}/${ios.package}" todir="${app.builddir}" overwrite="true"/>
 		
 		<delete dir="${tempdir}"/>
 	</target>
 	
 	
-	<!-- target name="devices" description="List available devices">
-		<echo> "Available devices: "</echo>
-				
-		<exec executable="${ADT}" failonerror="true">
-			<arg line="-devices ${deploy.platform} "/>
-		</exec>
-	</target -->
-	
-	
+	<!-- Deployment targets -->
 	<target name="uninstall" description="Uninstall the app from the device">
 		<exec executable="${ADT}" failonerror="true">
 			<arg line="
@@ -143,18 +148,86 @@
 		</exec>
 	</target>
 	
-	
-	<!-- Note: -package expects the path to the file -->
-	<target name="install" depends="package, uninstall" description="Install the app on the device">
+
+	<target name="install" depends="uninstall" description="Install the app on the device">
 		<exec executable="${ADT}" failonerror="true">
 			<arg line="
 				-installApp 
 				-platform ${deploy.platform} 
 				-platformsdk ${deploy.platform.sdk} 
 				-device ${deploy.device.handle} 
-				-package ${deploy.package}
+				-package ${ios.package.destination}/${ios.package}
 			"/>
 		</exec>
+	</target>
+
+	
+	<!-- Helper targets -->
+	<target name="check target type">
+		<sequential>
+			<condition property="build.debug" value="true" else="false">
+				<or>
+					<equals arg1="${ios.target.type}" arg2="ipa-debug-interpreter"/>
+					<equals arg1="${ios.target.type}" arg2="ipa-debug"/>
+					<equals arg1="${ios.target.type}" arg2="ipa-debug-interpreter-simulator"/>
+				</or>
+			</condition>
+		</sequential>
+	</target>
+	
+		
+	<target name="set build type" depends="check target type, check debug, check release">
+		<property name="app.builddir"   value="${app.rootdir}/bin-${build.type}"/>
+	</target>
+	
+	
+	<!-- Macro, which sets the property with name name to value if property.to.check is set and not empty
+		 and to default.value if property.to.check is either not set or is empty. 
+		 Thanks to cpeisert/StackExchange for the original code! -->
+	<macrodef name="set-property">
+		<attribute name="name"/>
+		<attribute name="property.to.check"/>
+		<attribute name="value"/>
+		<attribute name="default.value" default=""/>
+
+		<sequential>
+	    	<condition property="@{name}" value="@{value}" else="@{default.value}">
+	      		<and>
+	        		<isset property="@{property.to.check}"/>
+	        		<not>
+	          			<equals arg1="${@{property.to.check}}" arg2=""/>
+	        		</not>
+	      		</and>
+	    	</condition>
+		</sequential>
+	</macrodef>
+	
+	
+	<target name="check debug" if="${build.debug}" depends="check release" description="Check if ${debug} is true and if it is, set the properties below for a debug build">
+		<property name="iOS.build.type" value="Debug"/>
+		<property name="build.type" 	value="debug"/>
+		<property name="build.debug" 	value="true"/>
+		<set-property name="debug.settings" property.to.check="debug.host.ip" value="-connect ${debug.host.ip}"/>
+	</target>
+		
+		
+	<target name="check release" unless="${build.debug}" description="Check if ${debug} is false and if it is, set the properties below for a release build">
+		<property name="iOS.build.type" value="Release"/>
+		<property name="build.type" 	value="release"/>
+		<property name="build.debug" 	value="false"/>
+		<property name="debug.settings" value=""/>
+	</target>
+	
+	
+	<target name="set deployment type" depends="check deployment simulator, check deployment ios device">
+	</target>
+	
+	<target name="check deployment simulator" if="${deploy.simulator}">
+		<property name="ane.target" value="package ios simulator ane"/>
+	</target>
+	
+	<target name="check deployment ios device" unless="${deploy.simulator}">
+		<property name="ane.target" value="package ios ane"/>
 	</target>
 	
 	

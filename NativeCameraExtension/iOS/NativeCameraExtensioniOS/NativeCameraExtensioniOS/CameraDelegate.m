@@ -95,34 +95,42 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
                     maxFPS: ( uint32_t ) maxFPS
             useFrontCamera: ( BOOL ) useFrontCamera 
 {
+    BOOL result = false;
+    
     if ( [ captureSession canSetSessionPreset: preset ] )
     {
         captureSession.sessionPreset = preset;
         
-        [ self addVideoDataOutput :minFPS maxFPS:maxFPS ];
-        [ self addVideoInput : useFrontCamera ];
-        [ captureSession startRunning];
+        [ self addVideoDataOutput: minFPS maxFPS: maxFPS ];
         
-        frameIndex = 0;
+        if ( [ self addVideoInput : useFrontCamera ] )
+        {
+            [ captureSession startRunning];
         
-        return YES;
+            frameIndex = 0;
+        
+            result = true;
+        }
     }
     else 
     {
         sendMessage( MSG_ERROR, @"Preset not supported on device" );
-        
-        return NO;
     }
+    
+    return result;
 }
 
 
 - (void) stopVideoCamera
 {
     @synchronized( synchObject )
-    { 
-        [ captureSession stopRunning];
-        [ captureSession removeOutput: videoDataOutput ];
-        [ captureSession removeInput: cameraInput ];
+    {
+        if ( [ captureSession isRunning ] )
+        {
+            [ captureSession stopRunning];
+            [ captureSession removeOutput: videoDataOutput ];
+            [ captureSession removeInput: cameraInput ];
+        }
     }
 }
 
@@ -244,8 +252,10 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
 }
 
 
-- ( void ) addVideoInput:( BOOL ) useFrontCamera 
+- ( BOOL ) addVideoInput:( BOOL ) useFrontCamera
 {
+    BOOL result = false;
+    
     NSArray *devices = [AVCaptureDevice devices];
     
     for ( AVCaptureDevice * device in devices ) 
@@ -283,18 +293,25 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     }
     
     NSError * error = nil;
-    /*AVCaptureDeviceInput **/ cameraInput = [ AVCaptureDeviceInput deviceInputWithDevice: currentDevice error: &error ];
+    cameraInput = [ AVCaptureDeviceInput deviceInputWithDevice: currentDevice error: &error ];
     if (!error) 
     {
         if ( [ captureSession canAddInput: cameraInput ] ) 
         {
             [ captureSession addInput: cameraInput ];
-        } 
+            result = true;
+        }
+        else
+        {
+            sendMessage( MSG_ERROR, [ NSString stringWithFormat: @"Preset not supported on %@", ( useFrontCamera ? @"front camera" : @"back camera" ) ]);
+        }
     }
     else 
     { 
         sendMessage( error.localizedDescription, NULL );   
     }
+    
+    return result;
 }	
 
 

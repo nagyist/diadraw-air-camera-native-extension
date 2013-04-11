@@ -7,8 +7,8 @@
 //
 
 
+#import "FlashRuntimeExtensions.h"
 #import "CameraDelegate.h"
-#import "NativeCameraExtensioniOS.h"
 
 
 CameraDelegate * cameraDelegate;
@@ -307,17 +307,17 @@ void CameraExtensionContextInitializer( void * extData,
 {
     static FRENamedFunction extensionFunctions[] =
     {
-        { "as_startVideoCamera",        NULL, &ASStartVideoCamera },
-        { "as_stopVideoCamera",         NULL, &ASStopVideoCamera },
-        { "as_setExposureMode",         NULL, &ASSetExposureMode },
-        { "as_setFocusMode",            NULL, &ASSetFocusMode },
-        { "as_setWhiteBalance",         NULL, &ASSetWhiteBalanceMode },
-        { "as_getFrameBuffer",          NULL, &ASGetFrameBuffer },
-        { "as_setRotationAngle",        NULL, &ASSetRotationAngle },
-        { "as_setTranslationPoint",     NULL, &ASSetTranslationPoint },
-        { "as_setCropRectanglePixels",  NULL, &ASSetCropRectanglePixels },
-        { "as_setTorchMode",            NULL, &ASSetTorchMode },
-        { "as_hasTorch",                NULL, &ASHasTorch }
+        { (const uint8_t*) "as_startVideoCamera",        NULL, &ASStartVideoCamera },
+        { (const uint8_t*) "as_stopVideoCamera",         NULL, &ASStopVideoCamera },
+        { (const uint8_t*) "as_setExposureMode",         NULL, &ASSetExposureMode },
+        { (const uint8_t*) "as_setFocusMode",            NULL, &ASSetFocusMode },
+        { (const uint8_t*) "as_setWhiteBalance",         NULL, &ASSetWhiteBalanceMode },
+        { (const uint8_t*) "as_getFrameBuffer",          NULL, &ASGetFrameBuffer },
+        { (const uint8_t*) "as_setRotationAngle",        NULL, &ASSetRotationAngle },
+        { (const uint8_t*) "as_setTranslationPoint",     NULL, &ASSetTranslationPoint },
+        { (const uint8_t*) "as_setCropRectanglePixels",  NULL, &ASSetCropRectanglePixels },
+        { (const uint8_t*) "as_setTorchMode",            NULL, &ASSetTorchMode },
+        { (const uint8_t*) "as_hasTorch",                NULL, &ASHasTorch }
     };
     
     *numFunctionsToSet =

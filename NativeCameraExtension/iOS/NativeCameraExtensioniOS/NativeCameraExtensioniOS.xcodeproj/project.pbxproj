@@ -21,7 +21,6 @@
 		85283EF215A812AA0057531A /* libNativeCameraExtensioniOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNativeCameraExtensioniOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		85283EF515A812AA0057531A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		85283EF915A812AA0057531A /* NativeCameraExtensioniOS-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NativeCameraExtensioniOS-Prefix.pch"; sourceTree = "<group>"; };
-		85283EFA15A812AA0057531A /* NativeCameraExtensioniOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NativeCameraExtensioniOS.h; sourceTree = "<group>"; };
 		85283EFB15A812AA0057531A /* NativeCameraExtensioniOS.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NativeCameraExtensioniOS.m; sourceTree = "<group>"; };
 		85283F0215A814B80057531A /* FlashRuntimeExtensions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FlashRuntimeExtensions.h; sourceTree = "<group>"; };
 		85283F0915A83BB00057531A /* CameraTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -35,6 +34,8 @@
 		85283F1A15A83BB00057531A /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		85414E2B15C9009200A68756 /* CameraDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CameraDelegate.h; sourceTree = "<group>"; };
 		85414E2C15C9009200A68756 /* CameraDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CameraDelegate.m; sourceTree = "<group>"; };
+		855A0F0A17168BD200D9CAAC /* debug_app.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = debug_app.sh; sourceTree = "<group>"; };
+		855A0F0B17168BD200D9CAAC /* xcode.properties */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = xcode.properties; sourceTree = "<group>"; };
 		85837B831619A1FE00A19114 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
 		85A5526015AB2B18003A871D /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		85A5526B15AB3058003A871D /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
@@ -59,6 +60,7 @@
 		85283EE715A812AA0057531A = {
 			isa = PBXGroup;
 			children = (
+				855A0F0917168BD200D9CAAC /* debug script */,
 				85837B831619A1FE00A19114 /* Default-568h@2x.png */,
 				85283EF715A812AA0057531A /* NativeCameraExtensioniOS */,
 				85283F1015A83BB00057531A /* CameraTestApp */,
@@ -93,7 +95,6 @@
 			isa = PBXGroup;
 			children = (
 				85283F0415A814C80057531A /* Flash headers */,
-				85283EFA15A812AA0057531A /* NativeCameraExtensioniOS.h */,
 				85283EFB15A812AA0057531A /* NativeCameraExtensioniOS.m */,
 				85283EF815A812AA0057531A /* Supporting Files */,
 				85414E2B15C9009200A68756 /* CameraDelegate.h */,
@@ -137,6 +138,15 @@
 				85283F1815A83BB00057531A /* CameraTestApp-Prefix.pch */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		855A0F0917168BD200D9CAAC /* debug script */ = {
+			isa = PBXGroup;
+			children = (
+				855A0F0A17168BD200D9CAAC /* debug_app.sh */,
+				855A0F0B17168BD200D9CAAC /* xcode.properties */,
+			);
+			path = "debug script";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -225,7 +235,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\npwd\n\npushd ../../../binaries/ipa\n\n#Declare some variables:\n#on Mac:\nadt_directory=\"/Applications/Adobe Flash Builder 4.6/sdks/4.6.0/bin\"\n\ncert_directory=\"../../certificates\"\nprovisioning_profile=${cert_directory}/iOS_Team_Provisioning_Profile_.mobileprovision\ndeveloper_identity=${cert_directory}/ios_developer_private_key.p12\n\nplatformSDK_directory=\"/Developer/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.0.sdk\"\n\napp_bin_directory=\"../../FlexApp\"\n\nextension_directory=\"../ane\"\n\ndest_ipa=CameraTestApp.ipa\n\napp_config_file=CameraTestApp-app.xml\n\nswf_file=CameraTestApp.swf\n\nlogo_directory=\"${app_bin_directory}\"/src/assets\n\n#Clean up the terrain from old packages:\nrm -f *\n#rm -f \"${dest_ipa}\"\n#rm -f *.swf\n#rm -f *.xml\n#rm -f -r *.dSYM\n\n#Copy the ingredients for the package:\ncp -f \"${app_bin_directory}\"/bin-debug/CameraTestApp.swf .\ncp -f \"${app_bin_directory}\"/bin-debug/CameraTestApp-app.xml .\ncp -f -r \"${logo_directory}\" .\n\n\n\"${adt_directory}\"/adt -package -target ipa-debug-interpreter -storetype pkcs12 -keystore \"${developer_identity}\" -provisioning-profile \"${provisioning_profile}\" -storepass YourPasswordHere \"${dest_ipa}\" \"${app_config_file}\" \"${swf_file}\" -platformsdk \"${platformSDK_directory}\" -extdir \"${extension_directory}\" assets\n\n\n\n# extract the IPA\ncp CameraTestApp.ipa CameraTestApp.ipa.zip\nunzip -o CameraTestApp.ipa.zip\nrm CameraTestApp.ipa.zip\n# copy the contents of the IPA to the location xcode wants\ncp -r Payload/CameraTestApp.app/*       \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/\"\n                                \n                                \n                                cp -r CameraTestApp.app.dSYM \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/\"\n                                \n                                \n                                \n                                # remove the following files and folders to avoid signature errors when installing the app\n                                \n                                rm \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/_CodeSignature/CodeResources\"\n                                rmdir -f \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/_CodeSignature\"\n                                rm \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CodeResources\"\n                                rm \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/PkgInfo\"\n                                \n                                # restore working directory\n                                popd";
+			shellScript = "#!/bin/bash\n\npushd \"debug script\"\n./debug_app.sh\npopd";
 		};
 /* End PBXShellScriptBuildPhase section */
 
