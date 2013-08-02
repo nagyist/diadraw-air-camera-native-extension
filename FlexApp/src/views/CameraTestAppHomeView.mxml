@@ -350,7 +350,7 @@
 			private const FOCUS_RECT_SIZE_PIX : Number = 60;
 			private const FOCUS_RECT_HALF_SIZE_PIX : Number = FOCUS_RECT_SIZE_PIX * 0.5;
 			
-			private const RESOLUTION_PRESET : String = NativeCameraExtension.PresetiFrame960x540; 
+			private const RESOLUTION_PRESET : String = NativeCameraExtension.PresetHigh; 
 			
 			private const MIN_FRAMES_PER_SECOND : Number = 15;
 			private const MAX_FRAMES_PER_SECOND : Number = 15;
