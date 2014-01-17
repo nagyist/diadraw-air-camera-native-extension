@@ -20,6 +20,9 @@
 #import "CameraDelegate.h"
 
 
+extern void sendMessage( const NSString * const messageType, const NSString * const message );
+
+
 @interface CameraDelegate()
 {
 @private
@@ -38,7 +41,6 @@
 @synthesize reserveBuffer;
 @synthesize frameIndex;
 @synthesize synchObject;
-@synthesize sendMessage;
 
 
 CFMutableDictionaryRef pixelBufferAttributes;

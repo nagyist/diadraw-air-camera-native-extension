@@ -43,7 +43,6 @@ void ensureCameraDelegate( void )
     {
         cameraDelegate = [ [ CameraDelegate alloc ] init ];
         cameraDelegate.synchObject = g_ctx;
-        cameraDelegate.sendMessage = sendMessage;
     }
 }
 
