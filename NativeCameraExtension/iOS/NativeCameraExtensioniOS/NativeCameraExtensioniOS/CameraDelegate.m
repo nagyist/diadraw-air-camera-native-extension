@@ -20,6 +20,13 @@
 #import "CameraDelegate.h"
 
 
+@interface CameraDelegate()
+{
+@private
+}
+@end
+
+
 @implementation CameraDelegate
 
 
@@ -45,6 +52,7 @@ AVCaptureDevice * currentDevice;
 static const NSString * const MSG_WARNING = @"WARNING";
 static const NSString * const MSG_ERROR = @"ERROR";
 static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
+
 
 
 - ( id ) init
@@ -401,7 +409,8 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
             }   
         }
         
-        NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%lu,%lu", width, height ] ;
+        size_t widthPadding = ( bytesPerRow - ( width * 4 ) ) / 4.0;
+        NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%lu,%lu", width + widthPadding, height ] ;
         sendMessage( MSG_FRAME_READY, frameSize );
         [ frameSize release ];
         
