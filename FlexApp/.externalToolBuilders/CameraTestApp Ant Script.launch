@@ -6,9 +6,9 @@
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.ant.ui.AntClasspathProvider"/>
 <booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="true"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CameraTestApp"/>
-<booleanAttribute key="org.eclipse.ui.externaltools.ATTR_BUILDER_ENABLED" value="false"/>
+<booleanAttribute key="org.eclipse.ui.externaltools.ATTR_BUILDER_ENABLED" value="true"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="${workspace_loc:/CameraTestApp/ant/build.xml}"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS" value="full,incremental,"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="&quot;package extensions&quot; package install &#10;-Dios.store.password=YourPasswordHere  &#10;-Dios.privatekey=../../certificates/ios_developer_private_key.p12&#10;-Dios.mobileprovision=../../certificates/iOS_Team_Provisioning_Profile_.mobileprovision &#10;-Ddebug.host.ip=YourIpHere&#10;-Ddeploy.device.handle=1"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="&quot;package extensions&quot; package install &#10;-Dios.store.password=YourPasswordHere  &#10;-Dios.privatekey=../../certificates/dev_key.p12&#10;-Dios.mobileprovision=../../certificates/provisioning_profile.mobileprovision&#10;-Ddebug.host.ip=192.168.1.102&#10;-Ddeploy.device.handle=3"/>
 <booleanAttribute key="org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED" value="true"/>
 </launchConfiguration>

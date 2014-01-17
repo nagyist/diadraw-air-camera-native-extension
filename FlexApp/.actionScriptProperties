@@ -28,6 +28,7 @@
         </excludedEntries>
       </libraryPathEntry>
       <libraryPathEntry kind="1" linkType="1" path="libs"/>
+      <libraryPathEntry kind="5" linkType="2" path="libs/ane/FlexCameraExtensionLib.ane"/>
     </libraryPath>
     <sourceAttachmentPath/>
   </compiler>
@@ -44,7 +45,9 @@
       <multiPlatformSettings enabled="true" includePlatformLibs="false" platformID="com.adobe.flexide.multiplatform.ios.platform" version="2"/>
       <airSettings airCertificatePath="" airTimestamp="true" anePathSet="true" version="1">
         <airExcludes/>
-        <anePaths/>
+        <anePaths>
+          <anePathEntry path="/Users/radoslava/dev/googleNativeCameraExtension/FlexApp/libs/ane/FlexCameraExtensionLib.ane"/>
+        </anePaths>
       </airSettings>
       <actionScriptSettings version="1"/>
     </buildTarget>

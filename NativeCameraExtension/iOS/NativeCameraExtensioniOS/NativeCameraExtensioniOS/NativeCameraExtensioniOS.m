@@ -73,20 +73,30 @@ NSString * getNSStringFromCString( FREObject arg )
 
 FREObject ASStartVideoCamera( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
 {
-    assert( 4 == argc );
+    enum
+    {
+        ARG_RESOLUTION_PRESET = 0,
+        ARG_MIN_FPS,
+        ARG_MAX_FPS,
+        ARG_USE_FRONT_CAMERA,
+        
+        ARG_COUNT
+    };
+    
+    assert( ARG_COUNT == argc );
     
     ensureCameraDelegate();
     
-    NSString * preset = getNSStringFromCString( argv[ 0 ] );
+    NSString * preset = getNSStringFromCString( argv[ ARG_RESOLUTION_PRESET ] );
     
     uint32_t minFPS = 0;
-    FREGetObjectAsUint32( argv[ 1 ], &minFPS );
+    FREGetObjectAsUint32( argv[ ARG_MIN_FPS ], &minFPS );
     
     uint32_t maxFPS = 0;
-    FREGetObjectAsUint32( argv[ 2 ], &maxFPS );
+    FREGetObjectAsUint32( argv[ ARG_MAX_FPS ], &maxFPS );
     
     uint32_t useFrontCamera = NO;
-    FREGetObjectAsBool( argv[ 3 ], &useFrontCamera );
+    FREGetObjectAsBool( argv[ ARG_USE_FRONT_CAMERA ], &useFrontCamera );
     
     uint32_t isCameraStarted = [ cameraDelegate startVieoCamera: preset minFPS:minFPS maxFPS:maxFPS useFrontCamera:useFrontCamera ];
     
@@ -207,12 +217,22 @@ FREObject ASHasTorch( FREContext cts, void* funcData, uint32_t argc, FREObject a
 
 FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
 {
+    enum
+    {
+        ARG_FRAME_BUFFER = 0,
+        ARG_LAST_FRAME_CONSUMED,
+        
+        ARG_COUNT
+    };
+    
+    assert( ARG_COUNT == argc );
+    
     ensureCameraDelegate();
     
-    FREObject    objectByteArray = argv[ 0 ]; 
+    FREObject    objectByteArray = argv[ ARG_FRAME_BUFFER ];
     
     int32_t lastFrameConsumed = 0;
-    FREGetObjectAsInt32( argv[ 1 ], &lastFrameConsumed );
+    FREGetObjectAsInt32( argv[ ARG_LAST_FRAME_CONSUMED ], &lastFrameConsumed );
     
     FREObject lastFrameConsumedUpdate = nil;
     
@@ -353,6 +373,7 @@ void CameraExtensionInitializer( void** extDataToSet,
 void CameraExtensionFinalizer( void* extData )
 {
     [ cameraDelegate release ];
+    cameraDelegate = NULL;
     return;
 }
 
