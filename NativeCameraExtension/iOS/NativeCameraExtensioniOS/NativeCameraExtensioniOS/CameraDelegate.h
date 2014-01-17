@@ -27,7 +27,6 @@ typedef void ( *SendMessageCallBackType )( const NSString * const, const NSStrin
 @property ( retain ) NSData * reserveBuffer;
 
 @property int32_t frameIndex;
-@property void * synchObject;
 
 
 - (BOOL) startVieoCamera: ( NSString * ) preset

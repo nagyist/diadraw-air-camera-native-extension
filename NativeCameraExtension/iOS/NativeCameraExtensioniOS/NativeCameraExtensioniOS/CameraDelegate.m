@@ -40,7 +40,6 @@ extern void sendMessage( const NSString * const messageType, const NSString * co
 @synthesize writeBuffer;
 @synthesize reserveBuffer;
 @synthesize frameIndex;
-@synthesize synchObject;
 
 
 CFMutableDictionaryRef pixelBufferAttributes;
@@ -133,7 +132,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
 
 - (void) stopVideoCamera
 {
-    @synchronized( synchObject )
+    @synchronized( self )
     {
         if ( [ captureSession isRunning ] )
         {
@@ -394,7 +393,7 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
         void * src_buff = CVPixelBufferGetBaseAddress( pixelBuffer );
         [ self setWriteBuffer:[ NSData dataWithBytes: src_buff length: bytesPerRow * height ] ];
         
-        @synchronized( synchObject )
+        @synchronized( self )
         {
             // Swap the read, write and reserve buffers:
             

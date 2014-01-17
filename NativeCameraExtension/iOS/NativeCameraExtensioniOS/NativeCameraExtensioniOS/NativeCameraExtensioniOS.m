@@ -42,7 +42,6 @@ void ensureCameraDelegate( void )
     if ( !cameraDelegate )
     {
         cameraDelegate = [ [ CameraDelegate alloc ] init ];
-        cameraDelegate.synchObject = g_ctx;
     }
 }
 
