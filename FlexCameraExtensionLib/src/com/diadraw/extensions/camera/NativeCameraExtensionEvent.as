@@ -11,6 +11,7 @@ package com.diadraw.extensions.camera
 	{
 		public static var IMAGE_READY 	: String = "IMAGE_READY";
 		public static var STATUS_EVENT 	: String = "STATUS_EVENT";
+		public static var CAMERA_STARTED 	: String = "CAMERA_STARTED";
 		
 		
 		public function NativeCameraExtensionEvent( _type 		: String, 

@@ -22,7 +22,8 @@ FREContext g_ctx;
 //------------------------------------
 void sendMessage( const NSString * const messageType, const NSString * const message ) 
 {
-    assert( messageType );
+    assert( NULL != messageType );
+    assert( NULL != g_ctx );
     
     if ( NULL != message )
     {
@@ -213,47 +214,96 @@ FREObject ASHasTorch( FREContext cts, void* funcData, uint32_t argc, FREObject a
 }
 
 
-FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
+FREObject ASGetFrameWidth( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
 {
-    enum
-    {
-        ARG_FRAME_BUFFER = 0,
-        ARG_LAST_FRAME_CONSUMED,
-        
-        ARG_COUNT
-    };
-    
-    assert( ARG_COUNT == argc );
-    
     ensureCameraDelegate();
     
-    FREObject    objectByteArray = argv[ ARG_FRAME_BUFFER ];
+    FREObject frameWidth = nil;
+    FRENewObjectFromInt32( [ cameraDelegate frameWidth ], &frameWidth );
+    
+    return frameWidth;
+}
+
+
+FREObject ASGetFrameHeight( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
+{
+    ensureCameraDelegate();
+    
+    FREObject frameHeight = nil;
+    FRENewObjectFromInt32( [cameraDelegate frameHeight ], &frameHeight );
+    
+    return frameHeight;
+}
+
+
+FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
+{
+    ensureCameraDelegate();
+    
+    FREObject    objectByteArray = argv[ 0 ];
     
     int32_t lastFrameConsumed = 0;
-    FREGetObjectAsInt32( argv[ ARG_LAST_FRAME_CONSUMED ], &lastFrameConsumed );
+    FREGetObjectAsInt32( argv[ 1 ], &lastFrameConsumed );
     
     FREObject lastFrameConsumedUpdate = nil;
+    int32_t frameReceived = 0;
     
-    @synchronized( g_ctx )
+    BOOL isFrameCopied = [ cameraDelegate copyLastFrame: lastFrameConsumed
+                                                 buffer: objectByteArray
+                                           currentFrame: &frameReceived ];
+    
+    if ( !isFrameCopied )
     {
-        if ( lastFrameConsumed != [ cameraDelegate frameIndex ] )
-        {
-            FREObject    length;
-            FRENewObjectFromUint32( [ cameraDelegate readBuffer ].length, &length );
-
-            FRESetObjectProperty( objectByteArray, ( const uint8_t* ) "length", length, NULL );
-        
-            FREByteArray byteArray;
-            FREAcquireByteArray( objectByteArray, &byteArray );
-                memcpy( byteArray.bytes, [ cameraDelegate readBuffer ].bytes, [ cameraDelegate readBuffer ].length );
-            FREReleaseByteArray( objectByteArray );
-        }
-
-        FRENewObjectFromInt32( [ cameraDelegate frameIndex ], &lastFrameConsumedUpdate );
+        //frameReceived = -1;
     }
+    
+    FRENewObjectFromInt32( frameReceived, &lastFrameConsumedUpdate );
     
     return lastFrameConsumedUpdate;
 }
+
+
+//FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
+//{
+//    enum
+//    {
+//        ARG_FRAME_BUFFER = 0,
+//        ARG_LAST_FRAME_CONSUMED,
+//        
+//        ARG_COUNT
+//    };
+//    
+//    assert( ARG_COUNT == argc );
+//    
+//    ensureCameraDelegate();
+//    
+//    FREObject    objectByteArray = argv[ ARG_FRAME_BUFFER ];
+//    
+//    int32_t lastFrameConsumed = 0;
+//    FREGetObjectAsInt32( argv[ ARG_LAST_FRAME_CONSUMED ], &lastFrameConsumed );
+//    
+//    FREObject lastFrameConsumedUpdate = nil;
+//    
+//    @synchronized( g_ctx )
+//    {
+//        if ( lastFrameConsumed != [ cameraDelegate frameIndex ] )
+//        {
+//            FREObject    length;
+//            FRENewObjectFromUint32( [ cameraDelegate readBuffer ].length, &length );
+//
+//            FRESetObjectProperty( objectByteArray, ( const uint8_t* ) "length", length, NULL );
+//        
+//            FREByteArray byteArray;
+//            FREAcquireByteArray( objectByteArray, &byteArray );
+//                memcpy( byteArray.bytes, [ cameraDelegate readBuffer ].bytes, [ cameraDelegate readBuffer ].length );
+//            FREReleaseByteArray( objectByteArray );
+//        }
+//
+//        FRENewObjectFromInt32( [ cameraDelegate frameIndex ], &lastFrameConsumedUpdate );
+//    }
+//    
+//    return lastFrameConsumedUpdate;
+//}
 
 
 FREObject ASSetRotationAngle( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
@@ -331,6 +381,8 @@ void CameraExtensionContextInitializer( void * extData,
         { (const uint8_t*) "as_setFocusMode",            NULL, &ASSetFocusMode },
         { (const uint8_t*) "as_setWhiteBalance",         NULL, &ASSetWhiteBalanceMode },
         { (const uint8_t*) "as_getFrameBuffer",          NULL, &ASGetFrameBuffer },
+        { (const uint8_t*) "as_getFrameWidth",           NULL, &ASGetFrameWidth },
+        { (const uint8_t*) "as_getFrameHeight",          NULL, &ASGetFrameHeight },
         { (const uint8_t*) "as_setRotationAngle",        NULL, &ASSetRotationAngle },
         { (const uint8_t*) "as_setTranslationPoint",     NULL, &ASSetTranslationPoint },
         { (const uint8_t*) "as_setCropRectanglePixels",  NULL, &ASSetCropRectanglePixels },

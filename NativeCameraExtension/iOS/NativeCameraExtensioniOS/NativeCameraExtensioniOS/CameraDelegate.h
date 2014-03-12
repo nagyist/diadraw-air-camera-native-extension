@@ -9,6 +9,7 @@
 
 #import <AVFoundation/AVCaptureOutput.h>
 #import <AVFoundation/AVCaptureDevice.h>
+#import "FlashRuntimeExtensions.h"
 
 
 typedef void ( *SendMessageCallBackType )( const NSString * const, const NSString * const );
@@ -27,6 +28,9 @@ typedef void ( *SendMessageCallBackType )( const NSString * const, const NSStrin
 @property ( retain ) NSData * reserveBuffer;
 
 @property int32_t frameIndex;
+
+@property size_t frameWidth;
+@property size_t frameHeight;
 
 
 - (BOOL) startVieoCamera: ( NSString * ) preset
@@ -49,5 +53,9 @@ typedef void ( *SendMessageCallBackType )( const NSString * const, const NSStrin
 - (void) setTorchMode : ( AVCaptureTorchMode ) torchMode;
 
 - (BOOL) isTorchAvailable;
+
+- ( BOOL ) copyLastFrame: ( int32_t ) lastFrameCopied
+                  buffer: ( FREObject ) objectByteArray
+            currentFrame: ( int32_t * ) lastFrameConsumedUpdate;
 
 @end

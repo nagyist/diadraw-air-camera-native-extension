@@ -64,12 +64,67 @@
 					if ( m_cameraExt.startVideoCamera( RESOLUTION_PRESET, MIN_FRAMES_PER_SECOND, MAX_FRAMES_PER_SECOND, m_usingFrontCamera ) )
 					{
 						m_lastFrameIdx = int.MIN_VALUE;
-						m_cameraExt.addEventListener( NativeCameraExtensionEvent.IMAGE_READY, handleImageReady );
+
+						m_cameraExt.addEventListener( NativeCameraExtensionEvent.CAMERA_STARTED, handleCameraStarted );	
+//						This is now obsolete: m_cameraExt.addEventListener( NativeCameraExtensionEvent.IMAGE_READY, handleImageReady );
 					}
 				}
 				
 				m_isVideoInProgress = !m_isVideoInProgress;
 			}
+			
+			
+			private function handleCameraStarted( _event : NativeCameraExtensionEvent ) : void 
+			{
+				if ( null == m_timer )
+				{
+					m_timer = new Timer( 1000.0 / REFRESH_RATE_FRAMES_PER_SECOND );
+					m_timer.addEventListener( TimerEvent.TIMER, onTimer );
+				}
+				m_timer.start();
+			}
+			
+			
+			private function onTimer( _event : TimerEvent ) : void
+			{		
+				var byteArray : ByteArray = new ByteArray();
+				
+				var previewFrameSize : Point = new Point();
+				var currentFrameIdx : Number = m_cameraExt.getFrameBuffer( byteArray, m_lastFrameIdx, previewFrameSize );
+				
+				if ( currentFrameIdx > m_lastFrameIdx )
+				{
+					displayFrame( byteArray, previewFrameSize );
+					m_lastFrameIdx = currentFrameIdx;
+				} 	
+				else 
+				{
+					// Just for debugging and diagnostics:
+					checkErrorCode( currentFrameIdx );
+				}
+			}
+			
+			
+			private function checkErrorCode( _errorCode : Number ) : void
+			{
+				switch ( _errorCode )
+				{
+					case  -7: // Could not set the lenght of the native array
+					case -50: // An exception was thrown, but there was a problem reading it
+					case -99: // Caught an exception 
+					{
+						trace( "Error code: " + _errorCode );
+					}
+						break;
+					
+					default:
+					{
+//						trace( "currentFrameIdx = " + _errorCode + ", m_lastFrameIdx = " + m_lastFrameIdx );
+					}
+						break;
+				}
+			}
+			
 			
 			
 			protected function btnVideoCamera_clickHandler( _event : MouseEvent ):void
@@ -227,67 +282,42 @@
 			}
 
 			
-			private function handleImageReady( _event : NativeCameraExtensionEvent ) : void
+			private function getOrientedBitmap( _previewFrame : BitmapData ) : BitmapData
 			{
-				m_lastFrameWidth = _event.frameWidth;
-				m_lastFrameHeight = _event.frameHeight;
-				
-				m_byteArray = new ByteArray();
-				
-				var currentFrameIdx : Number = m_cameraExt.getFrameBuffer( m_byteArray, m_lastFrameIdx );
-				
-				if ( currentFrameIdx != m_lastFrameIdx )
-				{
-					// The byte array is set to RGBA, little endian on the native side, so make sure we read the same way:
-					m_byteArray.endian = Endian.LITTLE_ENDIAN;
-					displayFrame( m_byteArray );
-					m_lastFrameIdx = currentFrameIdx;
-				} 	
-			}
-
-
-			private function displayFrame( _byteArray : ByteArray ) : void
-			{
-				var bd : BitmapData = new BitmapData( m_lastFrameWidth, m_lastFrameHeight, true );
-				
-				var renderRect : Rectangle = new Rectangle( 0, 0, m_lastFrameWidth, m_lastFrameHeight );
-				
-				bd.setPixels( renderRect, _byteArray );
-				
 				var m : Matrix = new Matrix();
-				var w : Number = bd.width;
-				var h : Number = bd.height;
+				var w : Number = _previewFrame.width;
+				var h : Number = _previewFrame.height;
 				
 				switch ( stage.orientation )
 				{
 					case StageOrientation.DEFAULT:
-						{
-							w = bd.height;
-							h = bd.width;
-							
-							m.rotate( 90 * ( Math.PI / 180 ) );
-							m.translate( w, 0 );
-						}
+					{
+						w = _previewFrame.height;
+						h = _previewFrame.width;
+						
+						m.rotate( 90 * ( Math.PI / 180 ) );
+						m.translate( w, 0 );
+					}
 						break;
 					
 					case StageOrientation.UPSIDE_DOWN:
-						{
-							w = bd.height;
-							h = bd.width;
-							
-							m.rotate( -90 * ( Math.PI / 180 ) );
-							m.translate( 0, h );
-						}
+					{
+						w = _previewFrame.height;
+						h = _previewFrame.width;
+						
+						m.rotate( -90 * ( Math.PI / 180 ) );
+						m.translate( 0, h );
+					}
 						break;
 					
 					case StageOrientation.ROTATED_LEFT:
+					{
+						if ( !m_usingFrontCamera )
 						{
-							if ( !m_usingFrontCamera )
-							{
-								m.rotate( 180 * ( Math.PI / 180 ) );
-								m.translate( w, h );
-							}
+							m.rotate( 180 * ( Math.PI / 180 ) );
+							m.translate( w, h );
 						}
+					}
 						break;
 					
 					case StageOrientation.ROTATED_RIGHT:
@@ -305,11 +335,48 @@
 				}
 				
 				var orientedBd : BitmapData = new BitmapData( w, h, true );
-				orientedBd.draw( bd, m );
+				orientedBd.draw( m_frameData, m );
+				
+				return orientedBd;
+			}
+			
+
+			private function displayFrame( _byteArray : ByteArray, _previewFrameSize : Point ) : void
+			{
+				if ( null == _byteArray ) 									{ return; } // Null ByteArray
+				if ( 0 == _byteArray.length ) 								{ return; } // Empty ByteArray
+				if ( 0 >= _previewFrameSize.x || 0 >= _previewFrameSize.y ) { return; } // Empty frame
+				
+				_byteArray.position = 0;
+				
+				var refreshBitmapData : Boolean = ( null == m_frameData ) || ( null == m_renderRect );
+				if ( !refreshBitmapData )
+				{ 
+					refreshBitmapData =
+						( m_renderRect.width != _previewFrameSize.x ) || 
+						( m_renderRect.height != _previewFrameSize.y );
+				}
+				
+				if ( refreshBitmapData )
+				{
+					m_frameData = new BitmapData( _previewFrameSize.x, _previewFrameSize.y, true );
+					m_renderRect = new Rectangle( 0, 0, _previewFrameSize.x, _previewFrameSize.y );
+				}
+				
+				try
+				{
+					// Occasionally the frame width and height will get out of synch with the actual pixel buffer we copy.
+					// No need to panic.
+					m_frameData.setPixels( m_renderRect, _byteArray );
+				}
+				catch ( _e : Error )
+				{
+					trace( "Caught exception while copying pixels: " + _e.message );
+				}
 				
 				m_image.graphics.clear();
-				m_image.source = orientedBd;
-				
+				m_image.source = getOrientedBitmap( m_frameData );
+
 				m_byteArray = null;
 			}
 			
@@ -340,12 +407,17 @@
 			private var m_lastFrameWidth : Number;
 			private var m_lastFrameHeight : Number;
 			private var m_rotationDegrees : Number = 0;
+			private var m_frameData : BitmapData = null;
+			private var m_renderRect : Rectangle = null;
+			private var m_timer : Timer = null;
 			
 			[Bindable]
 			private var m_usingFrontCamera : Boolean = false;
 			
 			[Bindable]
 			private var m_isVideoInProgress : Boolean;
+			
+			private const REFRESH_RATE_FRAMES_PER_SECOND : Number = 10;
 			
 			private const FOCUS_RECT_SIZE_PIX : Number = 60;
 			private const FOCUS_RECT_HALF_SIZE_PIX : Number = FOCUS_RECT_SIZE_PIX * 0.5;
@@ -411,8 +483,8 @@
 	<s:Image id="m_image" 
 			 width="100%" 
 			 height="100%" 
-			 scaleMode="zoom" 
-
+			 scaleMode="letterbox" 
+			 backgroundColor="#000000"
 			 horizontalAlign="center"
 			 verticalAlign="middle"
 			 click="m_image_clickHandler(event)" 

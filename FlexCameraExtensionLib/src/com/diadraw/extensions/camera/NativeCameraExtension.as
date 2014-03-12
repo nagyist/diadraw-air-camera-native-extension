@@ -11,6 +11,7 @@ package com.diadraw.extensions.camera
 	import flash.external.ExtensionContext;
 	import flash.geom.Point;
 	import flash.utils.ByteArray;
+	import flash.utils.Endian;
 	
 	
 	public class NativeCameraExtension extends EventDispatcher
@@ -106,11 +107,42 @@ package com.diadraw.extensions.camera
 		 * @return The index of the frame that was copied into _bufferData.
 		 * 		   If it is the same as _lastFrameIndex, then we have already got the newest frame and no copying was done.	   	
 		 */ 
-		public function getFrameBuffer( _bufferData : ByteArray, _lastFrameIndex : Number ) : Number
+		public function getFrameBuffer( 
+			_bufferData : ByteArray, 
+			_lastFrameIndex : Number, 
+			_previewFrameSize : Point ) : Number
 		{
 			ensureContext();
-			return m_extContext.call( "as_getFrameBuffer", _bufferData, _lastFrameIndex ) as int;
+			
+			var lastFrameIndex : int = m_extContext.call( "as_getFrameBuffer", _bufferData, _lastFrameIndex ) as int;
+			
+			if ( null != _bufferData )
+			{
+				_bufferData.endian = Endian.LITTLE_ENDIAN;
+			}
+			
+			_previewFrameSize.x = m_extContext.call( "as_getFrameWidth", _bufferData, _lastFrameIndex ) as Number;
+			_previewFrameSize.y = m_extContext.call( "as_getFrameHeight", _bufferData, _lastFrameIndex ) as Number;
+			
+			return lastFrameIndex;
 		}
+		
+		
+//		/** 
+//		 * Requests a single frame from the video stream.
+//		 * 
+//		 * @param _bufferData ByteArray into which the frame pixels will be copied. 
+//		 * 		  NOTE: _bufferData must not be null. Its size however is set by the native code.
+//		 * @param _lastFrameIndex The index of the last frame we requested.
+//		 * 
+//		 * @return The index of the frame that was copied into _bufferData.
+//		 * 		   If it is the same as _lastFrameIndex, then we have already got the newest frame and no copying was done.	   	
+//		 */ 
+//		public function getFrameBuffer( _bufferData : ByteArray, _lastFrameIndex : Number ) : Number
+//		{
+//			ensureContext();
+//			return m_extContext.call( "as_getFrameBuffer", _bufferData, _lastFrameIndex ) as int;
+//		}
 		
 		
 		/** 
@@ -262,6 +294,12 @@ package com.diadraw.extensions.camera
 		{
 			switch ( _event.code )
 			{
+				case ( NativeCameraExtensionEvent.CAMERA_STARTED ):
+				{
+					dispatchEvent( new NativeCameraExtensionEvent( NativeCameraExtensionEvent.CAMERA_STARTED ) );
+				}
+				break;
+				
 				case ( NativeCameraExtensionEvent.IMAGE_READY ):
 					{
 						var imgReadyEvent : NativeCameraExtensionEvent = new NativeCameraExtensionEvent( NativeCameraExtensionEvent.IMAGE_READY );

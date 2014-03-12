@@ -41,6 +41,9 @@ extern void sendMessage( const NSString * const messageType, const NSString * co
 @synthesize reserveBuffer;
 @synthesize frameIndex;
 
+@synthesize frameWidth;
+@synthesize frameHeight;
+
 
 CFMutableDictionaryRef pixelBufferAttributes;
 CFDictionaryRef emptyIOSurfaceAttributes;
@@ -53,7 +56,61 @@ AVCaptureDevice * currentDevice;
 static const NSString * const MSG_WARNING = @"WARNING";
 static const NSString * const MSG_ERROR = @"ERROR";
 static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
+static const NSString * const MSG_CAMERA_STARTED = @"CAMERA_STARTED";
 
+
+#define REPORT_MEMORY_USE 0
+
+#if REPORT_MEMORY_USE
+#import <mach/mach.h>
+#import<malloc/malloc.h>
+
+static const double MB = 1.0 / ( 1024.0 * 1024.0 );
+
+static int lastUsedMemory = 0;
+static int maxUsedMemory = 0;
+static int frIdx = 0;
+
+- ( void ) report_memory: ( BOOL ) deltaOnly
+{
+    struct task_basic_info info;
+    mach_msg_type_number_t size = sizeof(info);
+    
+    kern_return_t kerr = task_info( mach_task_self(), TASK_BASIC_INFO, ( task_info_t ) &info, &size );
+    
+    
+    if ( 1 == frIdx )
+    {
+        NSLog(@"Frame [ %d ], memory in use (MB): %f", frIdx, info.resident_size * MB );
+    }
+    
+    
+    if ( deltaOnly )
+    {
+        if ( ( maxUsedMemory - info.resident_size ) * MB > 100 && lastUsedMemory > info.resident_size )
+        {
+            NSLog(@"Frame [ %d ], memory in use (MB): %f, maximum memory used (MB): %f", frIdx, info.resident_size * MB, maxUsedMemory * MB );
+        }
+    }
+    else
+    {
+        if ( KERN_SUCCESS == kerr )
+        {
+            NSLog(@"Frame [ %d ], memory in use (MB): %f", frIdx, info.resident_size * MB );
+        }
+        else
+        {
+            NSLog( @"Error with task_info(): %s", mach_error_string(kerr));
+        }
+    }
+    
+    lastUsedMemory = info.resident_size;
+    if ( lastUsedMemory > maxUsedMemory )
+    {
+        maxUsedMemory = lastUsedMemory;
+    }
+}
+#endif
 
 
 - ( id ) init
@@ -62,6 +119,8 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     {
         captureSession = [ [ AVCaptureSession alloc ] init ];
         rotationRadians = 0.0;
+        [ self setFrameWidth: 0 ];
+        [ self setFrameHeight: 0 ];
         
         // Initialise the pixelBufferAttributes dictionary, which is used when capturing frames:
         emptyIOSurfaceAttributes = CFDictionaryCreate( kCFAllocatorDefault, 
@@ -114,11 +173,26 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
         
         if ( [ self addVideoInput : useFrontCamera ] )
         {
+            
+            NSLog( @"6. Adding observer" );
+            id didStartRunningObserver = [ [ NSNotificationCenter defaultCenter ] addObserverForName: AVCaptureSessionDidStartRunningNotification
+                                                                                              object: captureSession
+                                                                                               queue: [ NSOperationQueue mainQueue ]
+                                                                                          usingBlock: ^( NSNotification * note )
+                                          {
+                                              NSLog( @"7. Observer added" );
+                                              sendMessage( MSG_CAMERA_STARTED, @"Camera started" );
+                                          } ];
+            
+            
+            
+            
+            
             [ captureSession startRunning];
         
             frameIndex = 0;
         
-            result = true;
+            result = didStartRunningObserver;
         }
     }
     else 
@@ -321,102 +395,288 @@ static const NSString * const MSG_FRAME_READY = @"IMAGE_READY";
     }
     
     return result;
-}	
-
-
-- ( CVPixelBufferRef ) applyFilters: ( CMSampleBufferRef ) sampleBuffer
-{
-    // 1. Get the pixel buffer and lock it for reading
-    CVPixelBufferRef pixelBuffer = ( CVPixelBufferRef ) CMSampleBufferGetImageBuffer( sampleBuffer );
-    CVReturn status = CVPixelBufferLockBaseAddress( pixelBuffer, 0 );    
-    NSParameterAssert( kCVReturnSuccess == status );
-    
-    if ( 0 == rotationRadians )
-    {
-        // No rotation or cropping to perform, just display the frame we've got
-        return pixelBuffer;
-    }
-    
-    // 2. Apply transformations - rotate the image
-    CIImage * originalImg = [ CIImage imageWithCVPixelBuffer: pixelBuffer ];
-    CGRect originalImageRect = [ originalImg extent ];
-    
-    CGAffineTransform rotation = CGAffineTransformMakeRotation( rotationRadians );
-    CIImage * resultImg = [ originalImg imageByApplyingTransform: rotation ]; 
-    
-    CGRect extent = [ resultImg extent ];
-    
-    CGAffineTransform translation = CGAffineTransformMakeTranslation( -extent.origin.x, -extent.origin.y );
-    resultImg = [ resultImg imageByApplyingTransform: translation ];
-    
-    CGRect cropRect = CGRectMake( 0, 0, originalImageRect.size.height, originalImageRect.size.width );
-    resultImg = [ resultImg imageByCroppingToRect: cropRect ];
-    
-    extent = [ resultImg extent ];
-
-    // 3. Create a pixel buffer to render the result in
-    CVPixelBufferRef resultBuffer = NULL;
-    OSType pixelFormatType = CVPixelBufferGetPixelFormatType( pixelBuffer );
- 
-    status = CVPixelBufferCreate( NULL, extent.size.width, extent.size.height, pixelFormatType, pixelBufferAttributes, &resultBuffer );    
-    NSParameterAssert( kCVReturnSuccess == status && NULL != resultBuffer );
-    
-    status = CVPixelBufferLockBaseAddress( resultBuffer, 0 );
-    NSParameterAssert( kCVReturnSuccess == status );
-   
-    CIContext * ciContext = [ CIContext contextWithOptions: NULL ];
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB(); 
-    [ ciContext render: resultImg toCVPixelBuffer:resultBuffer bounds: extent colorSpace: colorSpace ];
-   
-    // 4. Tidy up
-    CVPixelBufferUnlockBaseAddress( pixelBuffer, 0 );    
-    CGColorSpaceRelease( colorSpace );
-    
-    // 5. And return the result pixel buffer to be displayed
-    return resultBuffer; 
 }
 
 
-- ( void ) captureOutput: ( AVCaptureOutput * ) captureOutput 
+
+
+
+//- ( CVPixelBufferRef ) applyFilters: ( CMSampleBufferRef ) sampleBuffer
+//{
+//    // 1. Get the pixel buffer and lock it for reading
+//    CVPixelBufferRef pixelBuffer = ( CVPixelBufferRef ) CMSampleBufferGetImageBuffer( sampleBuffer );
+//    CVReturn status = CVPixelBufferLockBaseAddress( pixelBuffer, 0 );    
+//    NSParameterAssert( kCVReturnSuccess == status );
+//    
+//    if ( 0 == rotationRadians )
+//    {
+//        // No rotation or cropping to perform, just display the frame we've got
+//        return pixelBuffer;
+//    }
+//    
+//    // 2. Apply transformations - rotate the image
+//    CIImage * originalImg = [ CIImage imageWithCVPixelBuffer: pixelBuffer ];
+//    CGRect originalImageRect = [ originalImg extent ];
+//    
+//    CGAffineTransform rotation = CGAffineTransformMakeRotation( rotationRadians );
+//    CIImage * resultImg = [ originalImg imageByApplyingTransform: rotation ]; 
+//    
+//    CGRect extent = [ resultImg extent ];
+//    
+//    CGAffineTransform translation = CGAffineTransformMakeTranslation( -extent.origin.x, -extent.origin.y );
+//    resultImg = [ resultImg imageByApplyingTransform: translation ];
+//    
+//    CGRect cropRect = CGRectMake( 0, 0, originalImageRect.size.height, originalImageRect.size.width );
+//    resultImg = [ resultImg imageByCroppingToRect: cropRect ];
+//    
+//    extent = [ resultImg extent ];
+//
+//    // 3. Create a pixel buffer to render the result in
+//    CVPixelBufferRef resultBuffer = NULL;
+//    OSType pixelFormatType = CVPixelBufferGetPixelFormatType( pixelBuffer );
+// 
+//    status = CVPixelBufferCreate( NULL, extent.size.width, extent.size.height, pixelFormatType, pixelBufferAttributes, &resultBuffer );    
+//    NSParameterAssert( kCVReturnSuccess == status && NULL != resultBuffer );
+//    
+//    status = CVPixelBufferLockBaseAddress( resultBuffer, 0 );
+//    NSParameterAssert( kCVReturnSuccess == status );
+//   
+//    CIContext * ciContext = [ CIContext contextWithOptions: NULL ];
+//    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB(); 
+//    [ ciContext render: resultImg toCVPixelBuffer:resultBuffer bounds: extent colorSpace: colorSpace ];
+//   
+//    // 4. Tidy up
+//    CVPixelBufferUnlockBaseAddress( resultBuffer, 0 ); //pixelBuffer, 0 );
+//    CGColorSpaceRelease( colorSpace );
+//    
+//    //NSLog( @"Releasing originalImg..." );
+//    originalImg = NULL;
+//    //NSLog( @"originalImg released" );
+//    
+//    //NSLog( @"Releasing resultImg..." );
+//    resultImg = NULL;
+//    //NSLog( @"resultImg released" );
+//    
+//    
+//    // 5. And return the result pixel buffer to be displayed
+//    return resultBuffer; 
+//}
+
+
+
+- ( BOOL ) copyLastFrame: ( int32_t ) lastFrameCopied
+                  buffer: ( FREObject ) objectByteArray
+            currentFrame: ( int32_t * ) lastFrameConsumedUpdate
+{
+    BOOL isFrameCopied = NO;
+    *lastFrameConsumedUpdate = -10;
+    
+    @synchronized( self )
+    {
+        if ( NULL != readBuffer )
+        {
+            [ self setReserveBuffer: NULL ];
+            [ self setReserveBuffer: readBuffer ];
+            [ self setReadBuffer: NULL ];
+        }
+        else
+        {
+            *lastFrameConsumedUpdate = 11;
+        }
+    }
+    
+    if ( NULL == reserveBuffer )                { *lastFrameConsumedUpdate = -2; return NO; }
+    
+    if ( NULL == reserveBuffer.bytes )          { *lastFrameConsumedUpdate = -3; return NO; }
+    
+    if ( lastFrameCopied == [ self frameIndex ] )   { *lastFrameConsumedUpdate = -4; return NO; }
+    
+    uint32_t lengthValue = reserveBuffer.length;
+    
+    if ( 0 == lengthValue )                         { *lastFrameConsumedUpdate = -5; return NO; }
+    
+    FREObject    length;
+    FRENewObjectFromUint32( lengthValue, &length );
+    
+    FREObject thrownException;
+    FREResult status = FRESetObjectProperty( objectByteArray, ( const uint8_t* ) "length", length, &thrownException );
+    if ( FRE_OK != status )
+    {
+        *lastFrameConsumedUpdate = -7;
+        
+        FREObjectType objectType;
+        FREResult res = FREGetObjectType( thrownException, &objectType );
+        
+        if ( FRE_TYPE_OBJECT == objectType )
+        {
+            FREObject callResult;
+            
+            FREObject newException;
+            
+            res = FRECallObjectMethod( thrownException, ( const uint8_t * ) "toString", 0, NULL, &callResult, &newException );
+            uint32_t strLength = 0;
+            const uint8_t * argCString = NULL;
+            FREResult argumentResult = FREGetObjectAsUTF8( callResult, &strLength, &argCString );
+            
+            if ( FRE_OK == argumentResult )
+            {
+                sendMessage( MSG_ERROR, [ NSString stringWithFormat: @"exception: %s", argCString ] );
+                
+                *lastFrameConsumedUpdate = -99;
+            }
+            else
+            {
+                *lastFrameConsumedUpdate = -50;
+            }
+        }
+        
+        /**/
+        return NO;
+    }
+    
+    FREByteArray byteArray;
+    status = FREAcquireByteArray( objectByteArray, &byteArray );
+    if ( FRE_OK != status )                         { *lastFrameConsumedUpdate = -8; return NO; }
+    
+    if ( byteArray.length != reserveBuffer.length ) { *lastFrameConsumedUpdate = byteArray.length; return NO; }
+    
+    memcpy( byteArray.bytes, reserveBuffer.bytes, byteArray.length );
+    
+    status = FREReleaseByteArray( objectByteArray );
+    if ( FRE_OK != status )                         { *lastFrameConsumedUpdate = -9; return NO; }
+    
+    *lastFrameConsumedUpdate = frameIndex;
+    
+    isFrameCopied = YES;
+    
+    if ( !isFrameCopied )
+    {
+        *lastFrameConsumedUpdate = -6;
+    }
+    
+    [ self setReserveBuffer: NULL ];
+    
+    return isFrameCopied;
+}
+
+
+
+- ( void ) applyFilters: ( CVPixelBufferRef * ) pixelBuffer
+{
+    assert( NULL != pixelBuffer );
+    assert( NULL != * pixelBuffer );
+    
+    @autoreleasepool
+    {
+        // 2. Apply transformations - rotate the image
+        CIImage * originalImg = [ CIImage imageWithCVPixelBuffer: *pixelBuffer ];
+//        CGRect originalImageRect = [ originalImg extent ];
+//        NSLog( @" originalImageRect: %f x %f", originalImageRect.size.width, originalImageRect.size.height );
+        
+        CGAffineTransform rotation = CGAffineTransformMakeRotation( rotationRadians );
+        CIImage * resultImg = [ originalImg imageByApplyingTransform: rotation ];
+        
+        CGRect extent = [ resultImg extent ];
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation( -extent.origin.x, -extent.origin.y );
+        resultImg = [ resultImg imageByApplyingTransform: translation ];
+        
+//        CGRect cropRect = CGRectMake( 0, 0, originalImageRect.size.width, originalImageRect.size.height ); //CGRectMake( 0, 0, originalImageRect.size.height, originalImageRect.size.width );
+//        resultImg = [ resultImg imageByCroppingToRect: cropRect ];
+        
+        extent = [ resultImg extent ];
+        
+        // 3. Create a pixel buffer to render the result in
+        CVPixelBufferRef resultBuffer = NULL;
+        OSType pixelFormatType = CVPixelBufferGetPixelFormatType( *pixelBuffer );
+        
+        CVReturn status = CVPixelBufferCreate( NULL, extent.size.width, extent.size.height, pixelFormatType, pixelBufferAttributes, &resultBuffer );
+        NSParameterAssert( kCVReturnSuccess == status && NULL != resultBuffer );
+        
+        status = CVPixelBufferLockBaseAddress( resultBuffer, 0 );
+        NSParameterAssert( kCVReturnSuccess == status );
+        
+        CIContext * ciContext = [ CIContext contextWithOptions: NULL ];
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        [ ciContext render: resultImg toCVPixelBuffer: resultBuffer bounds: extent colorSpace: colorSpace ];
+        
+        [ self swapFrameBuffers: resultBuffer ];
+        
+        // 4. Tidy up
+        CGColorSpaceRelease( colorSpace );
+        
+        ciContext = NULL;
+        originalImg = NULL;
+        resultImg = NULL;
+        
+        CVPixelBufferUnlockBaseAddress( resultBuffer, 0 );
+        CVPixelBufferRelease( resultBuffer );
+    }
+}
+
+
+- ( void ) swapFrameBuffers: ( CVPixelBufferRef ) pixelBuffer
+{
+    // The pixel buffer's base address will already have been locked
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow( pixelBuffer );
+    size_t height = CVPixelBufferGetHeight( pixelBuffer );
+    size_t width = CVPixelBufferGetWidth( pixelBuffer );
+    
+    void * src_buff = CVPixelBufferGetBaseAddress( pixelBuffer );
+    [ self setWriteBuffer:[ NSData dataWithBytes: src_buff length: bytesPerRow * height ] ];
+    
+    @synchronized( self )
+    {
+        [ self setReadBuffer: writeBuffer ];
+        [ self setWriteBuffer: NULL ];
+        
+        ++frameIndex;
+        
+        if ( frameIndex >= NSIntegerMax - 1 )
+        {
+            frameIndex = 0;
+        }
+    }
+    
+    size_t widthPadding = ( bytesPerRow - ( width * 4 ) ) / 4.0;
+    
+    [ self setFrameWidth: width + widthPadding ];
+    [ self setFrameHeight: height ];
+    
+    NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%lu,%lu", width + widthPadding, height ] ;
+    sendMessage( MSG_FRAME_READY, frameSize );
+    [ frameSize release ];
+    // The pixel buffer's base address will be unlocked by the caller
+}
+
+
+- ( void ) captureOutput: ( AVCaptureOutput * ) captureOutput
    didOutputSampleBuffer: ( CMSampleBufferRef ) sampleBuffer 
           fromConnection: ( AVCaptureConnection * ) connection
 {
+    CVPixelBufferRef pixelBuffer = ( CVPixelBufferRef ) CMSampleBufferGetImageBuffer( sampleBuffer );
+    
     @autoreleasepool 
     {
-        // pixelBuffer will have its base address locked by applyFilters
-        CVPixelBufferRef pixelBuffer = [ self applyFilters: sampleBuffer ];
-        
-        size_t bytesPerRow = CVPixelBufferGetBytesPerRow( pixelBuffer );
-        size_t height = CVPixelBufferGetHeight( pixelBuffer );
-        size_t width = CVPixelBufferGetWidth( pixelBuffer );
-        
-        void * src_buff = CVPixelBufferGetBaseAddress( pixelBuffer );
-        [ self setWriteBuffer:[ NSData dataWithBytes: src_buff length: bytesPerRow * height ] ];
-        
-        @synchronized( self )
+        CVReturn status = CVPixelBufferLockBaseAddress( pixelBuffer, 0 );
+        NSParameterAssert( kCVReturnSuccess == status );
+
+        if ( 0 == rotationRadians )
         {
-            // Swap the read, write and reserve buffers:
-            
-            NSData * tmp = reserveBuffer;
-            reserveBuffer = readBuffer;
-            readBuffer = writeBuffer;
-            writeBuffer = tmp;
-            
-            ++frameIndex;
-            
-            if ( frameIndex >= NSIntegerMax - 1 )
-            {
-                frameIndex = 0;
-            }   
+            [ self swapFrameBuffers: pixelBuffer ];
+        }
+        else
+        {
+            [ self applyFilters: &pixelBuffer ];
         }
         
-        size_t widthPadding = ( bytesPerRow - ( width * 4 ) ) / 4.0;
-        NSString * frameSize = [ [ NSString alloc ] initWithFormat: @"%lu,%lu", width + widthPadding, height ] ;
-        sendMessage( MSG_FRAME_READY, frameSize );
-        [ frameSize release ];
-        
-        CVPixelBufferUnlockBaseAddress( pixelBuffer, 0 ); 
+        CVPixelBufferUnlockBaseAddress( pixelBuffer, 0 );
     }
+
+    
+#if REPORT_MEMORY_USE
+    [ self report_memory: NO ];
+#endif
 }
 
 
