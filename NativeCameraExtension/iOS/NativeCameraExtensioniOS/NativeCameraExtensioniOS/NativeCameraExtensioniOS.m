@@ -263,49 +263,6 @@ FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREOb
 }
 
 
-//FREObject ASGetFrameBuffer( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
-//{
-//    enum
-//    {
-//        ARG_FRAME_BUFFER = 0,
-//        ARG_LAST_FRAME_CONSUMED,
-//        
-//        ARG_COUNT
-//    };
-//    
-//    assert( ARG_COUNT == argc );
-//    
-//    ensureCameraDelegate();
-//    
-//    FREObject    objectByteArray = argv[ ARG_FRAME_BUFFER ];
-//    
-//    int32_t lastFrameConsumed = 0;
-//    FREGetObjectAsInt32( argv[ ARG_LAST_FRAME_CONSUMED ], &lastFrameConsumed );
-//    
-//    FREObject lastFrameConsumedUpdate = nil;
-//    
-//    @synchronized( g_ctx )
-//    {
-//        if ( lastFrameConsumed != [ cameraDelegate frameIndex ] )
-//        {
-//            FREObject    length;
-//            FRENewObjectFromUint32( [ cameraDelegate readBuffer ].length, &length );
-//
-//            FRESetObjectProperty( objectByteArray, ( const uint8_t* ) "length", length, NULL );
-//        
-//            FREByteArray byteArray;
-//            FREAcquireByteArray( objectByteArray, &byteArray );
-//                memcpy( byteArray.bytes, [ cameraDelegate readBuffer ].bytes, [ cameraDelegate readBuffer ].length );
-//            FREReleaseByteArray( objectByteArray );
-//        }
-//
-//        FRENewObjectFromInt32( [ cameraDelegate frameIndex ], &lastFrameConsumedUpdate );
-//    }
-//    
-//    return lastFrameConsumedUpdate;
-//}
-
-
 FREObject ASSetRotationAngle( FREContext ctx, void* funcData, uint32_t argc, FREObject argv[] )
 {
     ensureCameraDelegate();

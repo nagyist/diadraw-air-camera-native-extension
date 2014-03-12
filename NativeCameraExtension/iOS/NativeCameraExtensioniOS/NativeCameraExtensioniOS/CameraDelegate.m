@@ -173,14 +173,11 @@ static int frIdx = 0;
         
         if ( [ self addVideoInput : useFrontCamera ] )
         {
-            
-            NSLog( @"6. Adding observer" );
             id didStartRunningObserver = [ [ NSNotificationCenter defaultCenter ] addObserverForName: AVCaptureSessionDidStartRunningNotification
                                                                                               object: captureSession
                                                                                                queue: [ NSOperationQueue mainQueue ]
                                                                                           usingBlock: ^( NSNotification * note )
                                           {
-                                              NSLog( @"7. Observer added" );
                                               sendMessage( MSG_CAMERA_STARTED, @"Camera started" );
                                           } ];
             
@@ -398,72 +395,6 @@ static int frIdx = 0;
 }
 
 
-
-
-
-//- ( CVPixelBufferRef ) applyFilters: ( CMSampleBufferRef ) sampleBuffer
-//{
-//    // 1. Get the pixel buffer and lock it for reading
-//    CVPixelBufferRef pixelBuffer = ( CVPixelBufferRef ) CMSampleBufferGetImageBuffer( sampleBuffer );
-//    CVReturn status = CVPixelBufferLockBaseAddress( pixelBuffer, 0 );    
-//    NSParameterAssert( kCVReturnSuccess == status );
-//    
-//    if ( 0 == rotationRadians )
-//    {
-//        // No rotation or cropping to perform, just display the frame we've got
-//        return pixelBuffer;
-//    }
-//    
-//    // 2. Apply transformations - rotate the image
-//    CIImage * originalImg = [ CIImage imageWithCVPixelBuffer: pixelBuffer ];
-//    CGRect originalImageRect = [ originalImg extent ];
-//    
-//    CGAffineTransform rotation = CGAffineTransformMakeRotation( rotationRadians );
-//    CIImage * resultImg = [ originalImg imageByApplyingTransform: rotation ]; 
-//    
-//    CGRect extent = [ resultImg extent ];
-//    
-//    CGAffineTransform translation = CGAffineTransformMakeTranslation( -extent.origin.x, -extent.origin.y );
-//    resultImg = [ resultImg imageByApplyingTransform: translation ];
-//    
-//    CGRect cropRect = CGRectMake( 0, 0, originalImageRect.size.height, originalImageRect.size.width );
-//    resultImg = [ resultImg imageByCroppingToRect: cropRect ];
-//    
-//    extent = [ resultImg extent ];
-//
-//    // 3. Create a pixel buffer to render the result in
-//    CVPixelBufferRef resultBuffer = NULL;
-//    OSType pixelFormatType = CVPixelBufferGetPixelFormatType( pixelBuffer );
-// 
-//    status = CVPixelBufferCreate( NULL, extent.size.width, extent.size.height, pixelFormatType, pixelBufferAttributes, &resultBuffer );    
-//    NSParameterAssert( kCVReturnSuccess == status && NULL != resultBuffer );
-//    
-//    status = CVPixelBufferLockBaseAddress( resultBuffer, 0 );
-//    NSParameterAssert( kCVReturnSuccess == status );
-//   
-//    CIContext * ciContext = [ CIContext contextWithOptions: NULL ];
-//    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB(); 
-//    [ ciContext render: resultImg toCVPixelBuffer:resultBuffer bounds: extent colorSpace: colorSpace ];
-//   
-//    // 4. Tidy up
-//    CVPixelBufferUnlockBaseAddress( resultBuffer, 0 ); //pixelBuffer, 0 );
-//    CGColorSpaceRelease( colorSpace );
-//    
-//    //NSLog( @"Releasing originalImg..." );
-//    originalImg = NULL;
-//    //NSLog( @"originalImg released" );
-//    
-//    //NSLog( @"Releasing resultImg..." );
-//    resultImg = NULL;
-//    //NSLog( @"resultImg released" );
-//    
-//    
-//    // 5. And return the result pixel buffer to be displayed
-//    return resultBuffer; 
-//}
-
-
-
 - ( BOOL ) copyLastFrame: ( int32_t ) lastFrameCopied
                   buffer: ( FREObject ) objectByteArray
             currentFrame: ( int32_t * ) lastFrameConsumedUpdate
@@ -568,10 +499,8 @@ static int frIdx = 0;
     
     @autoreleasepool
     {
-        // 2. Apply transformations - rotate the image
+        // 1. Apply transformations - rotate the image
         CIImage * originalImg = [ CIImage imageWithCVPixelBuffer: *pixelBuffer ];
-//        CGRect originalImageRect = [ originalImg extent ];
-//        NSLog( @" originalImageRect: %f x %f", originalImageRect.size.width, originalImageRect.size.height );
         
         CGAffineTransform rotation = CGAffineTransformMakeRotation( rotationRadians );
         CIImage * resultImg = [ originalImg imageByApplyingTransform: rotation ];
@@ -581,12 +510,9 @@ static int frIdx = 0;
         CGAffineTransform translation = CGAffineTransformMakeTranslation( -extent.origin.x, -extent.origin.y );
         resultImg = [ resultImg imageByApplyingTransform: translation ];
         
-//        CGRect cropRect = CGRectMake( 0, 0, originalImageRect.size.width, originalImageRect.size.height ); //CGRectMake( 0, 0, originalImageRect.size.height, originalImageRect.size.width );
-//        resultImg = [ resultImg imageByCroppingToRect: cropRect ];
-        
         extent = [ resultImg extent ];
         
-        // 3. Create a pixel buffer to render the result in
+        // 2. Create a pixel buffer to render the result in
         CVPixelBufferRef resultBuffer = NULL;
         OSType pixelFormatType = CVPixelBufferGetPixelFormatType( *pixelBuffer );
         
@@ -602,7 +528,7 @@ static int frIdx = 0;
         
         [ self swapFrameBuffers: resultBuffer ];
         
-        // 4. Tidy up
+        // 3. Tidy up
         CGColorSpaceRelease( colorSpace );
         
         ciContext = NULL;
